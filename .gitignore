@@ -1,0 +1,49 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+out/
+coverage/
+.turbo/
+*.tsbuildinfo
+
+# Packed tarballs. `npm pack` output is a build artefact, not source.
+*.tgz
+*.tar.gz
+
+# Secrets. Anything below is unrecoverable once pushed.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Solana and Anchor keypairs. Neither package here needs one, which is exactly
+# why a stray keypair file would go unnoticed without this.
+id.json
+keypair.json
+*-keypair.json
+*-deploy.json
+*-deployer.json
+*-deploy-*.json
+*-wallet.json
+*-wallet-*.json
+.deploy/
+.anchor/
+test-ledger/
+
+# Python. Nothing in this repository is Python; these entries exist so that a
+# stray script or its bytecode cache cannot ride along in a commit.
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors, tooling and OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.vercel/
