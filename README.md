@@ -1,0 +1,47 @@
+# BAZR SDK and CLI
+
+<p align="center">
+<a href="https://bazr.market"><img src="https://img.shields.io/badge/site-bazr.market-1F6FB2?style=flat-square" alt="Site"></a>
+<a href="https://api.bazr.market/health"><img src="https://img.shields.io/badge/api-api.bazr.market-7FA650?style=flat-square" alt="API"></a>
+<a href="https://github.com/BazrMarket/bazr"><img src="https://img.shields.io/badge/main%20repo-BazrMarket%2Fbazr-3A3A38?style=flat-square&logo=github&logoColor=white" alt="Main repository"></a>
+<a href="https://github.com/BazrMarket/bazr-sdk/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BazrMarket/bazr-sdk/ci.yml?branch=main&label=build&style=flat-square" alt="Build"></a>
+<a href="https://github.com/BazrMarket/bazr-sdk/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-C8A87C?style=flat-square" alt="License"></a>
+<a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/typescript-5.9-1F6FB2?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript"></a>
+<a href="https://nodejs.org/en/download"><img src="https://img.shields.io/badge/node-%3E%3D18-7FA650?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node"></a>
+<a href="https://zod.dev"><img src="https://img.shields.io/badge/zod-4.4-E8452F?style=flat-square" alt="zod"></a>
+<a href="https://vitest.dev"><img src="https://img.shields.io/badge/tests-120%20passing-7FA650?style=flat-square&logo=vitest&logoColor=white" alt="Tests"></a>
+<a href="https://explorer.solana.com/address/FSLSR2xYiR5NPWg6g8DZ1KyVRVa7xW37gDStbaDfSXLb?cluster=devnet"><img src="https://img.shields.io/badge/solana-devnet%20only-D9B85C?style=flat-square&logo=solana&logoColor=white" alt="Solana devnet"></a>
+<a href="https://github.com/BazrMarket/bazr-sdk#status-nothing-here-is-published-to-npm-yet"><img src="https://img.shields.io/badge/registry-not%20published-6E7076?style=flat-square" alt="Registry status"></a>
+<a href="https://github.com/BazrMarket/bazr/blob/main/docs/relic-spec.md"><img src="https://img.shields.io/badge/relic%20spec-published-C8A87C?style=flat-square" alt="Relic specification"></a>
+</p>
+
+Two TypeScript packages for reading the BAZR relic API: a typed client library
+and a terminal client built on top of it.
+
+BAZR is an aftermarket for Solana meme tokens that **already graduated from a
+launchpad**. It scores what survived, publishes the formula, and shows the
+reasoning behind every number.
+
+**A relic score is a summary of survival signals, not a prediction of price or
+revival.** It compresses what could be observed about a token after graduation
+into one number and five axes, each of which is shown with its own weight and
+its own contribution. There is no trending feed, no new-launch feed, no ranking
+of what is about to move, and no sniping surface. Those are deliberate absences,
+not gaps waiting to be filled.
+
+---
+
+## What is in this repository
+
+| Package | Name | What it does |
+| --- | --- | --- |
+| `packages/sdk-ts` | `@bazr/sdk` | Typed client for the relic API. Runtime-validated responses, retry and backoff policy, score re-normalisation maths. |
+| `packages/cli` | `bazr-cli` | Terminal client. Renders relic tags, axis breakdowns, stall records, crates and route quotes. Depends on `@bazr/sdk`. |
+
+The Anchor program, the relic specification, the API contract and the sourcing
+research live in the main repository, [BazrMarket/bazr](https://github.com/BazrMarket/bazr).
+The hosted web frontend and the indexing service are not open source and are not
+in either repository.
+
+---
+
