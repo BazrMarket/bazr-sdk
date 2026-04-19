@@ -45,3 +45,22 @@ in either repository.
 
 ---
 
+## Status: nothing here is published to npm yet
+
+**Neither `@bazr/sdk` nor `bazr-cli` has been published to the npm registry.**
+`npm install @bazr/sdk` and `npm install -g bazr-cli` do not work today and will
+fail with `E404`. Both manifests carry `publishConfig.access: public` and are
+ready for a release, but the release has not happened.
+
+Until it does, the only supported installation is a build from source, described
+in the next section. That build is not a workaround shown for completeness -- it
+is the real and only path, and every command in it was executed against this
+tree before it was written down.
+
+When the packages are published, the order is fixed: `@bazr/sdk` first, then
+`bazr-cli`. The CLI depends on the SDK by registry range (`^0.1.0`), so
+publishing the CLI first would upload a package nobody can install, and the
+`E404` names the SDK rather than the CLI.
+
+---
+
