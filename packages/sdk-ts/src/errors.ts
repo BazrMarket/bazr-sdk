@@ -66,3 +66,71 @@ export class BazrApiError extends BazrError {
     this.body = opts.body;
   }
 }
+
+/** HTTP 429. `retryAfterMs` is whatever `Retry-After` said, in milliseconds. */
+export class BazrRateLimitError extends BazrApiError {
+  readonly retryAfterMs: number | null;
+
+  constructor(
+    message: string,
+    opts: BazrErrorContext & {
+      status?: number;
+      code?: string;
+      detail?: unknown;
+      body?: string;
+      retryAfterMs: number | null;
+    },
+  ) {
+    super(message, { ...opts, status: opts.status ?? 429, kind: "rate_limit" });
+    this.retryAfterMs = opts.retryAfterMs;
+  }
+}
+
+/** The request never produced a response (DNS, refused connection, TLS, ...). */
+export class BazrNetworkError extends BazrError {
+  constructor(message: string, ctx: BazrErrorContext = {}) {
+    super("network", message, ctx);
+  }
+}
+
+/** The request was aborted because it outlived `timeoutMs`. */
+export class BazrTimeoutError extends BazrError {
+  readonly timeoutMs: number;
+
+  constructor(message: string, opts: BazrErrorContext & { timeoutMs: number }) {
+    super("timeout", message, opts);
+    this.timeoutMs = opts.timeoutMs;
+  }
+}
+
+export interface BazrValidationIssue {
+  path: string;
+  message: string;
+}
+
+/**
+ * A 2xx response whose body did not match the API contract.
+ *
+ * This is deliberately loud. Without it a renamed or dropped field turns into
+ * `undefined` flowing quietly through the caller's code.
+ */
+export class BazrValidationError extends BazrError {
+  readonly issues: BazrValidationIssue[];
+  readonly received: unknown;
+
+  constructor(
+    message: string,
+    opts: BazrErrorContext & { issues?: BazrValidationIssue[]; received?: unknown },
+  ) {
+    super("validation", message, opts);
+    this.issues = opts.issues ?? [];
+    this.received = opts.received;
+  }
+}
+
+/** Bad client configuration (empty base URL, no fetch implementation, ...). */
+export class BazrConfigError extends BazrError {
+  constructor(message: string) {
+    super("config", message);
+  }
+}
