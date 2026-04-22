@@ -43,3 +43,40 @@ export interface FetchInitLike {
 }
 
 export type FetchLike = (url: string, init?: FetchInitLike) => Promise<FetchResponseLike>;
+
+/* -------------------------------------------------------------------------- */
+/* retry configuration                                                         */
+/* -------------------------------------------------------------------------- */
+
+export type RetryReason = "rate_limit" | "server_error" | "network" | "timeout";
+
+export interface RetryInfo {
+  attempt: number;
+  delayMs: number;
+  reason: RetryReason;
+  status: number | null;
+  url: string;
+}
+
+export interface RetryOptions {
+  /** Total attempts including the first. Default 3. */
+  maxAttempts?: number;
+  /** First backoff step. Default 250ms. */
+  baseDelayMs?: number;
+  /** Ceiling for a single backoff step. Default 8000ms. */
+  maxDelayMs?: number;
+  /** A `Retry-After` longer than this is not waited out; it throws. Default 30000ms. */
+  maxRetryAfterMs?: number;
+  /** Randomise backoff to avoid a retry stampede. Default true. */
+  jitter?: boolean;
+  /** Retry when the request never reached the server. Default true. */
+  retryOnNetworkError?: boolean;
+  /** Injectable for tests; defaults to setTimeout. */
+  sleep?: (ms: number) => Promise<void>;
+  /** Observability hook, fired before each wait. */
+  onRetry?: (info: RetryInfo) => void;
+}
+
+export interface ResolvedRetryOptions extends Required<Omit<RetryOptions, "onRetry">> {
+  onRetry: ((info: RetryInfo) => void) | null;
+}
