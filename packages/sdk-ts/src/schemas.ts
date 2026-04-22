@@ -32,3 +32,108 @@ const nullableText = z
   .string()
   .nullish()
   .transform((v) => v ?? null);
+
+/* -------------------------------------------------------------------------- */
+/* relic                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export const VERDICTS = ["dormant", "dead", "unclear"] as const;
+export const VerdictSchema = z.enum(VERDICTS);
+export type Verdict = z.infer<typeof VerdictSchema>;
+
+export const AXIS_KEYS = [
+  "holder_dispersion",
+  "lp_residual",
+  "dev_wallet_state",
+  "floor_shape",
+  "social_afterglow",
+] as const;
+export const AxisKeySchema = z.enum(AXIS_KEYS);
+export type AxisKey = z.infer<typeof AxisKeySchema>;
+
+/** Fallback English labels for axes the API did not return at all. */
+export const AXIS_FALLBACK_LABELS: Record<AxisKey, string> = {
+  holder_dispersion: "Holder dispersion",
+  lp_residual: "LP residual",
+  dev_wallet_state: "Dev wallet state",
+  floor_shape: "Floor shape",
+  social_afterglow: "Social afterglow",
+};
+
+export const AxisStatusSchema = z.enum(["ok", "unknown"]);
+export type AxisStatus = z.infer<typeof AxisStatusSchema>;
+
+export const AxisSchema = z.object({
+  key: AxisKeySchema,
+  label: z.string(),
+  blurb: nullableText,
+  /** 0-100, or null when `status` is "unknown". Never folded to 0. */
+  score: z.number().min(0).max(100).nullable(),
+  weight: z.number().min(0),
+  contribution: z.number().nullish().transform((v) => v ?? null),
+  status: AxisStatusSchema,
+  detail: z.unknown().optional(),
+});
+export type Axis = z.infer<typeof AxisSchema>;
+
+export const TagSeveritySchema = z.enum(["info", "caution", "alert"]);
+export type TagSeverity = z.infer<typeof TagSeveritySchema>;
+
+export const TagConfidenceSchema = z.enum(["high", "medium", "low"]);
+export type TagConfidence = z.infer<typeof TagConfidenceSchema>;
+
+export const TagSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  severity: TagSeveritySchema,
+  observed: z.boolean(),
+  confidence: TagConfidenceSchema,
+  evidence: z.unknown().optional(),
+});
+export type Tag = z.infer<typeof TagSchema>;
+
+export const SourceRefSchema = z.object({
+  name: z.string(),
+  endpoint: nullableText,
+  fetched_at: nullableTimestamp,
+});
+export type SourceRef = z.infer<typeof SourceRefSchema>;
+
+export const CacheInfoSchema = z.object({
+  hit: z.boolean(),
+  age_s: z.number(),
+});
+export type CacheInfo = z.infer<typeof CacheInfoSchema>;
+
+/**
+ * Contract default. Substituted only when the API omits `disclaimer`, so that
+ * every rendered surface has the sentence available.
+ */
+export const DEFAULT_DISCLAIMER =
+  "Survival-signal summary, not a prediction of price or revival.";
+
+export const RelicSchema = z.object({
+  mint: z.string(),
+  symbol: nullableText,
+  name: nullableText,
+  /** null when not a single axis could be observed. Not 0. */
+  score: z.number().min(0).max(100).nullable(),
+  verdict: VerdictSchema,
+  axes: z.array(AxisSchema),
+  tags: z.array(TagSchema).default([]),
+  graduated_at: nullableTimestamp,
+  scored_at: nullableTimestamp,
+  cache: CacheInfoSchema.nullish().transform((v) => v ?? null),
+  sources: z.array(SourceRefSchema).default([]),
+  disclaimer: z
+    .string()
+    .nullish()
+    .transform((v) => (v && v.trim().length > 0 ? v : DEFAULT_DISCLAIMER)),
+});
+export type Relic = z.infer<typeof RelicSchema>;
+
+export const RelicTagsSchema = z.object({
+  mint: z.string(),
+  tags: z.array(TagSchema).default([]),
+});
+export type RelicTags = z.infer<typeof RelicTagsSchema>;
