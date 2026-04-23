@@ -64,3 +64,35 @@ publishing the CLI first would upload a package nobody can install, and the
 
 ---
 
+## Architecture
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {
+  'primaryColor': '#F2EFE3',
+  'primaryTextColor': '#3A3A38',
+  'primaryBorderColor': '#1F6FB2',
+  'lineColor': '#1F6FB2',
+  'secondaryColor': '#C8A87C',
+  'tertiaryColor': '#D9B85C',
+  'fontFamily': 'monospace'
+}}}%%
+graph TD
+  CLI["bazr-cli<br/>terminal renderer"] --> SDK
+  APP["your application<br/>node or browser"] --> SDK
+  SDK["@bazr/sdk<br/>createBazrClient"] --> HTTP["transport<br/>timeout, Retry-After, backoff"]
+  SDK --> SCORE["score.ts<br/>re-normalise over observed axes"]
+  SDK --> ZOD["schemas.ts<br/>zod runtime validation"]
+  HTTP --> API["BAZR service<br/>relic, stall, crate, haggle"]
+  API --> IDX["indexers and RPC<br/>read-only, off this repo"]
+  API --> CHAIN["bazr-market program<br/>Solana devnet"]
+  ZOD -->|"contract violation"| ERR["BazrValidationError<br/>thrown, never silently dropped"]
+  SCORE -->|"unknown axis"| DEN["removed from the denominator<br/>never folded in as zero"]
+
+  style DEN fill:#E8452F,stroke:#3A3A38,color:#F2EFE3
+  style SCORE fill:#C8A87C,stroke:#3A3A38,color:#3A3A38
+  style API fill:#1F6FB2,stroke:#3A3A38,color:#F2EFE3
+  style CHAIN fill:#D9B85C,stroke:#3A3A38,color:#3A3A38
+```
+
+---
+
