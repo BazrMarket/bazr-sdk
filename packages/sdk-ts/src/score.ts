@@ -120,3 +120,82 @@ function emptyResult(
     })),
   };
 }
+
+/**
+ * @example
+ * // 3 of 5 axes observable -> the score is the weighted mean of those 3 over
+ * // their own summed weight, not a mean that counts the other 2 as zero.
+ * normalizedScore(relic.axes).score
+ */
+export function normalizedScore(axes: readonly Axis[]): NormalizedScore {
+  const present = new Set<AxisKey>();
+  const observed: AxisKey[] = [];
+  const unknown: AxisKey[] = [];
+  let totalWeight = 0;
+  let availableWeight = 0;
+
+  for (const axis of axes) {
+    present.add(axis.key);
+    totalWeight += axis.weight;
+    if (isAxisObservable(axis)) {
+      observed.push(axis.key);
+      availableWeight += axis.weight;
+    } else {
+      unknown.push(axis.key);
+    }
+  }
+
+  const missing = AXIS_KEYS.filter((key) => !present.has(key));
+
+  if (observed.length === 0) {
+    return emptyResult(axes, observed, unknown, missing, totalWeight, "no observable axis");
+  }
+  if (availableWeight <= 0) {
+    // Not a case relic-spec anticipates: the weights are fixed positive
+    // constants there. A service that sends zeroes is broken, and inventing an
+    // equal-weight mean would hide that behind a plausible number.
+    return emptyResult(
+      axes,
+      observed,
+      unknown,
+      missing,
+      totalWeight,
+      "observable axes carry zero weight",
+    );
+  }
+
+  const score = axes.reduce(
+    (sum, axis) => (isAxisObservable(axis) ? sum + axis.weight * axis.score : sum),
+    0,
+  ) / availableWeight;
+
+  const contributions: AxisContribution[] = orderedByContract(axes).map((axis) => {
+    const available = isAxisObservable(axis);
+    const normalizedWeight = available ? axis.weight / availableWeight : 0;
+    const contribution = available ? normalizedWeight * axis.score : 0;
+    return {
+      key: axis.key,
+      label: axis.label || AXIS_FALLBACK_LABELS[axis.key],
+      status: axis.status,
+      score: available ? axis.score : null,
+      weight: axis.weight,
+      normalizedWeight,
+      contribution,
+      share: score > 0 ? contribution / score : 0,
+    };
+  });
+
+  return {
+    score,
+    scoreRounded: Math.round(score),
+    verdict: null,
+    reason: null,
+    observed,
+    unknown,
+    missing,
+    availableWeight,
+    totalWeight,
+    weightCoverage: totalWeight > 0 ? availableWeight / totalWeight : 0,
+    contributions,
+  };
+}
