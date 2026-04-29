@@ -96,3 +96,46 @@ graph TD
 
 ---
 
+## Install from source
+
+Node 18 or newer. Lockfiles are committed for both packages, so the dependency
+tree is reproducible.
+
+```bash
+git clone https://github.com/BazrMarket/bazr-sdk.git
+cd bazr-sdk
+
+cd packages/sdk-ts
+npm install
+npm run build
+npm test
+
+cd ../cli
+npm install
+npm run build
+npm test
+```
+
+`packages/cli` resolves `@bazr/sdk` from its committed lockfile as a link to
+`../sdk-ts`, so the sibling package is picked up without any extra linking step
+and without a registry. The CLI test suite rebuilds both bundles before it runs,
+because a spawned-process test against a stale `dist/` measures the wrong thing.
+
+Run the built binary directly, or put `bazr` on your `PATH` with `npm link`:
+
+```bash
+node packages/cli/dist/bazr.js --help
+node packages/cli/dist/bazr.js health --api https://api.bazr.market
+
+cd packages/cli && npm link    # optional; makes the `bazr` command available
+```
+
+That second command answers from the deployed service today:
+
+```
+PASS  https://api.bazr.market
+      status ok, version 0.1.0
+```
+
+---
+
