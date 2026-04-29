@@ -88,3 +88,69 @@ export interface BazrClient {
   quoteHaggle(req: HaggleQuoteRequest, opts?: CallOptions): Promise<HaggleQuote>;
   getStats(opts?: CallOptions): Promise<MarketStats>;
 }
+
+function normalizeBaseUrl(raw: string): string {
+  const trimmed = (raw ?? "").trim();
+  if (trimmed === "") {
+    throw new BazrConfigError("baseUrl is required (for example http://localhost:8030)");
+  }
+  if (!/^https?:\/\//i.test(trimmed)) {
+    throw new BazrConfigError(`baseUrl must start with http:// or https:// (got "${trimmed}")`);
+  }
+  return trimmed.replace(/\/+$/, "");
+}
+
+function resolveFetch(injected: FetchLike | undefined): FetchLike {
+  if (injected) return injected;
+  const globalFetch = (globalThis as { fetch?: unknown }).fetch;
+  if (typeof globalFetch !== "function") {
+    throw new BazrConfigError(
+      "No fetch implementation found. Use Node 18+ or pass { fetch } explicitly.",
+    );
+  }
+  return globalFetch.bind(globalThis) as FetchLike;
+}
+
+type QueryValue = string | number | boolean | undefined;
+
+function buildUrl(baseUrl: string, path: string, query?: Record<string, QueryValue>): string {
+  const segments = path
+    .split("/")
+    .filter((s) => s.length > 0)
+    .map((s) => encodeURIComponent(s))
+    .join("/");
+  let url = `${baseUrl}/${segments}`;
+  if (query) {
+    const pairs = Object.entries(query)
+      .filter((entry): entry is [string, string | number | boolean] => entry[1] !== undefined)
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
+    if (pairs.length > 0) url += `?${pairs.join("&")}`;
+  }
+  return url;
+}
+
+function zodIssues(error: z.ZodError): BazrValidationIssue[] {
+  return error.issues.map((issue) => ({
+    path: issue.path.map((p) => String(p)).join("."),
+    message: issue.message,
+  }));
+}
+
+function parseOrThrow<S extends z.ZodType>(
+  schema: S,
+  data: unknown,
+  ctx: { url: string; method: string },
+): z.infer<S> {
+  const result = schema.safeParse(data);
+  if (result.success) return result.data;
+  throw new BazrValidationError(
+    `Response from ${ctx.method} ${ctx.url} did not match the BAZR API contract`,
+    { url: ctx.url, method: ctx.method, issues: zodIssues(result.error), received: data },
+  );
+}
+
+function requireNonEmpty(value: string, name: string): string {
+  const trimmed = (value ?? "").trim();
+  if (trimmed === "") throw new BazrConfigError(`${name} is required`);
+  return trimmed;
+}
