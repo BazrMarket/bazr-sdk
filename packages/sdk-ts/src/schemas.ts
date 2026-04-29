@@ -137,3 +137,50 @@ export const RelicTagsSchema = z.object({
   tags: z.array(TagSchema).default([]),
 });
 export type RelicTags = z.infer<typeof RelicTagsSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* stall                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export const StallSortSchema = z.enum(["record", "recent", "listings"]);
+export type StallSort = z.infer<typeof StallSortSchema>;
+
+/**
+ * Wins and losses are both required. There is deliberately no `win_rate`
+ * field: a rate alone lets a stall hide its losses behind a denominator.
+ */
+export const StallSchema = z.object({
+  owner: z.string(),
+  pubkey: z.string(),
+  bond_amount: amount,
+  opened_at: nullableTimestamp,
+  listings_count: z.number().int().min(0),
+  resolved_wins: z.number().int().min(0),
+  resolved_losses: z.number().int().min(0),
+  resolved_pending: z.number().int().min(0),
+  slashed: z.boolean(),
+  uri: nullableText,
+});
+export type Stall = z.infer<typeof StallSchema>;
+
+export const StallListSchema = z.object({
+  stalls: z.array(StallSchema),
+  next_cursor: nullableText,
+});
+export type StallList = z.infer<typeof StallListSchema>;
+
+export const StallListingSchema = z.object({
+  mint: z.string(),
+  relic_score_at_listing: z.number().min(0).max(100).nullish().transform((v) => v ?? null),
+  thesis: nullableText,
+  /** Free-form on the wire ("win" | "loss" | "pending" | null). */
+  outcome: nullableText,
+  listed_at: nullableTimestamp,
+  resolved_at: nullableTimestamp,
+});
+export type StallListing = z.infer<typeof StallListingSchema>;
+
+export const StallDetailSchema = StallSchema.extend({
+  listings: z.array(StallListingSchema).default([]),
+});
+export type StallDetail = z.infer<typeof StallDetailSchema>;
