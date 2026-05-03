@@ -80,3 +80,41 @@ export interface RetryOptions {
 export interface ResolvedRetryOptions extends Required<Omit<RetryOptions, "onRetry">> {
   onRetry: ((info: RetryInfo) => void) | null;
 }
+
+/**
+ * The backoff wait between attempts.
+ *
+ * The timer is deliberately kept referenced. A previous version called
+ * `unref()` on it "so a backoff would not hold the process open", which does
+ * the opposite of what it reads like: this promise is awaited, and an unref'd
+ * timer does not count as work. By the time the retry loop gets here the
+ * failed request has already released its socket, so the event loop is empty,
+ * Node exits, and `await sleep(...)` never settles.
+ *
+ * In a library that is a leak. In a bare CLI process it is worse: the whole
+ * `await runCli(...)` chain silently evaporates. Measured against the
+ * production service, `bazr relic <mint>` died exactly this way on every
+ * cache miss -- Node printed "Detected unsettled top-level await", no result
+ * was produced, and the exit status did not say the run had failed.
+ *
+ * A caller that genuinely wants to abandon a pending backoff injects its own
+ * `sleep` via {@link RetryOptions}; that decision does not belong in the
+ * default.
+ */
+export const defaultSleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+export function resolveRetryOptions(opts: RetryOptions | undefined): ResolvedRetryOptions {
+  return {
+    maxAttempts: Math.max(1, opts?.maxAttempts ?? 3),
+    baseDelayMs: Math.max(0, opts?.baseDelayMs ?? 250),
+    maxDelayMs: Math.max(0, opts?.maxDelayMs ?? 8_000),
+    maxRetryAfterMs: Math.max(0, opts?.maxRetryAfterMs ?? 30_000),
+    jitter: opts?.jitter ?? true,
+    retryOnNetworkError: opts?.retryOnNetworkError ?? true,
+    sleep: opts?.sleep ?? defaultSleep,
+    onRetry: opts?.onRetry ?? null,
+  };
+}
