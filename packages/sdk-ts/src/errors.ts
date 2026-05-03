@@ -134,3 +134,60 @@ export class BazrConfigError extends BazrError {
     super("config", message);
   }
 }
+
+export function isBazrError(value: unknown): value is BazrError {
+  return value instanceof BazrError;
+}
+
+/**
+ * One line a human can act on. Used by the CLI so a dead backend prints a
+ * sentence instead of a stack trace.
+ */
+export function describeError(err: unknown): string {
+  if (err instanceof BazrRateLimitError) {
+    const wait =
+      err.retryAfterMs === null
+        ? "no Retry-After header was sent"
+        : `Retry-After said ${Math.round(err.retryAfterMs / 100) / 10}s`;
+    return `Rate limited by the BAZR API (429) after ${err.attempts} attempt(s); ${wait}.`;
+  }
+  if (err instanceof BazrApiError) {
+    return `BAZR API returned HTTP ${err.status} (${err.code}): ${err.message}`;
+  }
+  if (err instanceof BazrTimeoutError) {
+    return `No response from ${err.url ?? "the BAZR API"} within ${err.timeoutMs}ms.`;
+  }
+  if (err instanceof BazrNetworkError) {
+    return `Cannot reach ${err.url ?? "the BAZR API"}: ${err.message}`;
+  }
+  if (err instanceof BazrValidationError) {
+    const first = err.issues[0];
+    const where = first ? ` at ${first.path || "<root>"}: ${first.message}` : "";
+    return `BAZR API response did not match the expected contract${where}`;
+  }
+  if (err instanceof BazrConfigError) {
+    return `BAZR client is misconfigured: ${err.message}`;
+  }
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
+/** Extra lines worth showing under {@link describeError}, when there are any. */
+export function errorHints(err: unknown): string[] {
+  if (err instanceof BazrNetworkError || err instanceof BazrTimeoutError) {
+    return [
+      "Is the BAZR service running and reachable?",
+      "Point the client somewhere else with --api <url> or the BAZR_API env var.",
+    ];
+  }
+  if (err instanceof BazrRateLimitError) {
+    return ["Wait for the window to reset, or drop --refresh (it has a tighter limit)."];
+  }
+  if (err instanceof BazrValidationError) {
+    return err.issues.slice(0, 5).map((i) => `${i.path || "<root>"}: ${i.message}`);
+  }
+  if (err instanceof BazrApiError && err.status === 404) {
+    return ["The API has no record for that address yet."];
+  }
+  return [];
+}
