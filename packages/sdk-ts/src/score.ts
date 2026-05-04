@@ -199,3 +199,72 @@ export function normalizedScore(axes: readonly Axis[]): NormalizedScore {
     contributions,
   };
 }
+
+export interface AxisRow {
+  key: AxisKey;
+  label: string;
+  blurb: string | null;
+  /** null means "not observed", which is not the same as a score of 0. */
+  score: number | null;
+  weight: number;
+  /**
+   * Re-normalised contribution, or `null` when the axis was not observable.
+   *
+   * This is the *rendering* view and deliberately differs from relic-spec
+   * section 8, which defines the numeric contribution of an unobservable axis
+   * as `0` so that the contributions sum to the score. Printing that `0` in a
+   * table is the exact confusion the spec's "unknown is not zero" rule exists
+   * to prevent, so the renderer gets `null` here and the section 8 numbers live
+   * on {@link NormalizedScore.contributions}.
+   */
+  contribution: number | null;
+  /** Contribution the service itself reported, when it sent one. */
+  reportedContribution: number | null;
+  status: AxisStatus;
+  /** True when the payload had no entry for this axis at all. */
+  absent: boolean;
+  detail: unknown;
+}
+
+/**
+ * All five canonical axes in contract order, whatever the payload contained.
+ * Axes the service skipped come back as `status: "unknown"`, never as 0.
+ */
+export function axisRows(axes: readonly Axis[]): AxisRow[] {
+  const normalized = normalizedScore(axes);
+  const byKey = new Map<AxisKey, Axis>();
+  for (const axis of axes) byKey.set(axis.key, axis);
+  const contributionByKey = new Map<AxisKey, number>();
+  for (const c of normalized.contributions) contributionByKey.set(c.key, c.contribution);
+
+  return AXIS_KEYS.map((key): AxisRow => {
+    const axis = byKey.get(key);
+    if (!axis) {
+      return {
+        key,
+        label: AXIS_FALLBACK_LABELS[key],
+        blurb: null,
+        score: null,
+        weight: 0,
+        contribution: null,
+        reportedContribution: null,
+        status: "unknown",
+        absent: true,
+        detail: undefined,
+      };
+    }
+    const observable = isAxisObservable(axis);
+    return {
+      key,
+      label: axis.label || AXIS_FALLBACK_LABELS[key],
+      blurb: axis.blurb,
+      score: observable ? axis.score : null,
+      weight: axis.weight,
+      contribution: observable ? (contributionByKey.get(key) ?? null) : null,
+      reportedContribution: axis.contribution,
+      status: axis.status,
+      absent: false,
+      detail: axis.detail,
+    };
+  });
+}
