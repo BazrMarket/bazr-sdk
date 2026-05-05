@@ -184,3 +184,48 @@ export const StallDetailSchema = StallSchema.extend({
   listings: z.array(StallListingSchema).default([]),
 });
 export type StallDetail = z.infer<typeof StallDetailSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* crate                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export const CrateComponentSchema = z.object({
+  mint: z.string(),
+  weight_bps: z.number().int().min(0).max(10_000),
+  relic_score: z.number().min(0).max(100).nullish().transform((v) => v ?? null),
+});
+export type CrateComponent = z.infer<typeof CrateComponentSchema>;
+
+export const CrateSchema = z.object({
+  id: z.number().int(),
+  creator: z.string(),
+  name: z.string(),
+  components: z.array(CrateComponentSchema).default([]),
+  created_at: nullableTimestamp,
+  last_rebalanced_at: nullableTimestamp,
+  rebalance_count: z.number().int().min(0),
+  frozen: z.boolean(),
+});
+export type Crate = z.infer<typeof CrateSchema>;
+
+export interface CrateList {
+  crates: Crate[];
+  next_cursor: string | null;
+}
+
+/**
+ * `GET /crate` is the one endpoint the contract leaves ambiguous (it shows a
+ * single object only), so both a bare array and an envelope are accepted and
+ * normalised to one shape.
+ */
+export const CrateListSchema = z
+  .union([
+    z.array(CrateSchema),
+    z.object({
+      crates: z.array(CrateSchema),
+      next_cursor: nullableText,
+    }),
+  ])
+  .transform((v): CrateList =>
+    Array.isArray(v) ? { crates: v, next_cursor: null } : { crates: v.crates, next_cursor: v.next_cursor },
+  );
