@@ -118,3 +118,31 @@ export function resolveRetryOptions(opts: RetryOptions | undefined): ResolvedRet
     onRetry: opts?.onRetry ?? null,
   };
 }
+
+/**
+ * `Retry-After` is either delta-seconds or an HTTP-date (RFC 9110). Both are
+ * seen in the wild; guessing wrong means either hammering the server or
+ * sleeping for a wall-clock timestamp.
+ */
+export function parseRetryAfter(raw: string | null, nowMs: number = Date.now()): number | null {
+  if (raw === null) return null;
+  const value = raw.trim();
+  if (value === "") return null;
+
+  if (/^\d+(\.\d+)?$/.test(value)) {
+    return Math.max(0, Math.round(Number(value) * 1000));
+  }
+
+  const asDate = Date.parse(value);
+  if (!Number.isNaN(asDate)) return Math.max(0, asDate - nowMs);
+
+  return null;
+}
+
+export function computeBackoff(attempt: number, opts: ResolvedRetryOptions): number {
+  const exponential = opts.baseDelayMs * Math.pow(2, Math.max(0, attempt - 1));
+  const capped = Math.min(opts.maxDelayMs, exponential);
+  if (!opts.jitter) return Math.round(capped);
+  // Equal jitter: keeps half the backoff deterministic, randomises the rest.
+  return Math.round(capped / 2 + Math.random() * (capped / 2));
+}
