@@ -154,3 +154,102 @@ function requireNonEmpty(value: string, name: string): string {
   if (trimmed === "") throw new BazrConfigError(`${name} is required`);
   return trimmed;
 }
+
+export function createBazrClient(options: BazrClientOptions): BazrClient {
+  const baseUrl = normalizeBaseUrl(options.baseUrl);
+  const deps: RequestDeps = {
+    fetch: resolveFetch(options.fetch),
+    timeoutMs: options.timeoutMs ?? 10_000,
+    retry: resolveRetryOptions(options.retry),
+    userAgent: options.userAgent === undefined ? "bazr-sdk/0.1.0" : options.userAgent,
+  };
+  const baseHeaders = options.headers ?? {};
+
+  async function call<S extends z.ZodType>(
+    method: string,
+    path: string,
+    schema: S,
+    extra: { query?: Record<string, QueryValue>; body?: unknown; signal?: unknown } = {},
+  ): Promise<z.infer<S>> {
+    const url = buildUrl(baseUrl, path, extra.query);
+    const raw = await requestJson(
+      {
+        method,
+        url,
+        headers: baseHeaders,
+        ...(extra.body === undefined ? {} : { body: extra.body }),
+        ...(extra.signal === undefined ? {} : { signal: extra.signal }),
+      },
+      deps,
+    );
+    return parseOrThrow(schema, raw, { url, method });
+  }
+
+  return {
+    baseUrl,
+
+    getHealth(opts) {
+      return call("GET", "/health", HealthSchema, { signal: opts?.signal });
+    },
+
+    getHealthDetailed(opts) {
+      return call("GET", "/health/detailed", HealthDetailedSchema, { signal: opts?.signal });
+    },
+
+    getRelic(mint, opts) {
+      const id = requireNonEmpty(mint, "mint");
+      return call("GET", `/relic/${id}`, RelicSchema, {
+        query: opts?.refresh ? { refresh: true } : undefined,
+        signal: opts?.signal,
+      });
+    },
+
+    getTags(mint, opts) {
+      const id = requireNonEmpty(mint, "mint");
+      return call("GET", `/relic/${id}/tags`, RelicTagsSchema, { signal: opts?.signal });
+    },
+
+    listStalls(opts) {
+      return call("GET", "/stall", StallListSchema, {
+        query: { sort: opts?.sort, limit: opts?.limit, cursor: opts?.cursor },
+        signal: opts?.signal,
+      });
+    },
+
+    getStall(owner, opts) {
+      const id = requireNonEmpty(owner, "owner");
+      return call("GET", `/stall/${id}`, StallDetailSchema, { signal: opts?.signal });
+    },
+
+    listCrates(opts) {
+      return call("GET", "/crate", CrateListSchema, {
+        query: { limit: opts?.limit, cursor: opts?.cursor },
+        signal: opts?.signal,
+      });
+    },
+
+    getCrate(id, opts) {
+      const crateId = requireNonEmpty(String(id ?? ""), "crate id");
+      return call("GET", `/crate/${crateId}`, CrateSchema, { signal: opts?.signal });
+    },
+
+    quoteHaggle(req, opts) {
+      const parsed = HaggleQuoteRequestSchema.safeParse(req);
+      if (!parsed.success) {
+        throw new BazrConfigError(
+          `Invalid haggle quote request: ${zodIssues(parsed.error)
+            .map((i) => `${i.path || "<root>"} ${i.message}`)
+            .join("; ")}`,
+        );
+      }
+      return call("POST", "/haggle/quote", HaggleQuoteSchema, {
+        body: parsed.data,
+        signal: opts?.signal,
+      });
+    },
+
+    getStats(opts) {
+      return call("GET", "/market/stats", MarketStatsSchema, { signal: opts?.signal });
+    },
+  };
+}
