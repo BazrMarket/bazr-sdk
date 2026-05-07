@@ -229,3 +229,35 @@ export const CrateListSchema = z
   .transform((v): CrateList =>
     Array.isArray(v) ? { crates: v, next_cursor: null } : { crates: v.crates, next_cursor: v.next_cursor },
   );
+
+/* -------------------------------------------------------------------------- */
+/* haggle                                                                      */
+/* -------------------------------------------------------------------------- */
+
+export const HaggleQuoteRequestSchema = z.object({
+  input_mint: z.string().min(1),
+  output_mint: z.string().min(1),
+  amount: z.union([z.string(), z.number(), z.bigint()]).transform((v) => String(v)),
+  slippage_bps: z.number().int().min(0).max(10_000).optional(),
+});
+export type HaggleQuoteRequest = z.input<typeof HaggleQuoteRequestSchema>;
+
+export const RouteHopSchema = z.object({
+  amm: z.string(),
+  in_mint: z.string(),
+  out_mint: z.string(),
+  fee_bps: z.number().nullish().transform((v) => v ?? null),
+});
+export type RouteHop = z.infer<typeof RouteHopSchema>;
+
+export const HaggleQuoteSchema = z.object({
+  in_amount: amount,
+  out_amount: amount,
+  price_impact_bps: z.number(),
+  min_out: amount,
+  route: z.array(RouteHopSchema).default([]),
+  /** What the service actually used underneath. Stated plainly, never hidden. */
+  source: z.string(),
+  warning: nullableText,
+});
+export type HaggleQuote = z.infer<typeof HaggleQuoteSchema>;
