@@ -268,3 +268,17 @@ export function axisRows(axes: readonly Axis[]): AxisRow[] {
     };
   });
 }
+
+/** `normalizedScore(relic.axes)`, spelled out for the common case. */
+export function relicScoreBreakdown(relic: Relic): NormalizedScore {
+  return normalizedScore(relic.axes);
+}
+
+/**
+ * How much of the picture was actually observed, e.g. "3 of 5 axes observed".
+ * Rendering surfaces should show this next to any score.
+ */
+export function describeCoverage(normalized: NormalizedScore): string {
+  const total = normalized.observed.length + normalized.unknown.length + normalized.missing.length;
+  return `${normalized.observed.length} of ${total || AXIS_KEYS.length} axes observed`;
+}
