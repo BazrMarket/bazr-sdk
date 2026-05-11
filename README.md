@@ -139,3 +139,36 @@ PASS  https://api.bazr.market
 
 ---
 
+## Quick start -- SDK
+
+```ts
+import { createBazrClient, axisRows, normalizedScore } from "@bazr/sdk";
+
+const bazr = createBazrClient({
+  baseUrl: "https://api.bazr.market",
+});
+
+const relic = await bazr.getRelic("So11111111111111111111111111111111111111112");
+
+console.log(relic.score, relic.verdict);   // 71 "dormant"
+console.log(relic.disclaimer);             // always present in the response
+
+for (const row of axisRows(relic.axes)) {
+  // An axis that was not observed comes back with score null.
+  // Print "--", never 0. They are different events.
+  console.log(row.label, row.score ?? "--", row.contribution ?? "no data");
+}
+
+const n = normalizedScore(relic.axes);
+console.log(n.observed.length, "of 5 axes observed");
+console.log((n.weightCoverage * 100).toFixed(0) + "% of the weight was observable");
+```
+
+Every failure throws a typed error rather than resolving to an empty object:
+`BazrApiError`, `BazrRateLimitError` (carrying `retryAfterMs`),
+`BazrNetworkError`, `BazrTimeoutError`, `BazrValidationError` (carrying the zod
+issues) and `BazrConfigError`. Full reference in
+[`packages/sdk-ts/README.md`](packages/sdk-ts/README.md).
+
+---
+
