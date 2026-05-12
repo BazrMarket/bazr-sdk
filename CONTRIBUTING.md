@@ -26,3 +26,15 @@ Neither package is on the npm registry yet. See
 
 ---
 
+## Development environment
+
+| Tool | Version | Notes |
+| --- | --- | --- |
+| Node.js | 18 or newer | Both manifests declare `>=18`. CI runs 20. |
+| npm | Ships with Node | Lockfiles are committed, so `npm ci` works as well as `npm install`. |
+
+No Rust, no Solana CLI and no Anchor toolchain are needed to work on this
+repository. Neither package signs a transaction or holds a key.
+
+---
+
