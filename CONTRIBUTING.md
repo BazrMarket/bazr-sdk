@@ -38,3 +38,38 @@ repository. Neither package signs a transaction or holds a key.
 
 ---
 
+## The build
+
+Run this from a clean checkout. All six commands pass:
+
+```bash
+cd packages/sdk-ts
+npm install
+npm run typecheck    # tsc --noEmit
+npm run build        # tsup -> dist/index.js, dist/index.cjs, dist/index.d.ts
+npm test             # vitest run
+
+cd ../cli
+npm install
+npm run typecheck
+npm run build        # tsup -> dist/bazr.js
+npm test
+```
+
+`packages/cli` picks up `@bazr/sdk` from its committed lockfile as a link to
+`../sdk-ts`. There is no separate linking step and no registry involved. If you
+ever need to re-establish that link by hand, `npm run dev:link` in
+`packages/cli` installs `../sdk-ts` into `node_modules` without touching
+`package.json`, so the published manifest keeps the registry range `^0.1.0`
+rather than a local `file:` path.
+
+`npm run typecheck` is the check that catches the most. Both packages compile
+under `strict` plus `noUncheckedIndexedAccess` and `verbatimModuleSyntax`, so a
+plausible-looking change that loses a null check will not get past it.
+
+`npm test` in `packages/cli` rebuilds **both** bundles before it runs. Testing the
+shipped binary against a stale `@bazr/sdk/dist` would reintroduce a blind spot
+that has already cost this project once.
+
+---
+
