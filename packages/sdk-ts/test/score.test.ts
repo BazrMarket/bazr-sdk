@@ -100,3 +100,49 @@ describe("normalizedScore -- relic-spec section 8 aggregation", () => {
     expect(describeCoverage(result)).toBe("1 of 5 axes observed");
   });
 });
+
+describe("normalizedScore -- relic-spec section 8 verification identity", () => {
+  it("SUM contribution == relic across all five axes, unobservable ones included", () => {
+    const result = normalizedScore(contractAxes());
+    const total = result.contributions.reduce((s, c) => s + c.contribution, 0);
+
+    expect(result.contributions).toHaveLength(5);
+    expect(total).toBeCloseTo(result.score as number, 9);
+  });
+
+  it("an unobservable axis contributes exactly 0 and carries no normalised weight", () => {
+    const result = normalizedScore(contractAxes());
+    const dev = result.contributions.find((c) => c.key === "dev_wallet_state");
+
+    expect(dev?.status).toBe("unknown");
+    expect(dev?.score).toBeNull();
+    expect(dev?.weight).toBeCloseTo(0.15, 9);
+    expect(dev?.normalizedWeight).toBe(0);
+    expect(dev?.contribution).toBe(0);
+  });
+
+  it("normalised weights over the available axes sum to 1 and shares sum to 1", () => {
+    const result = normalizedScore(contractAxes());
+
+    expect(result.contributions.reduce((s, c) => s + c.normalizedWeight, 0)).toBeCloseTo(1, 9);
+    expect(result.contributions.reduce((s, c) => s + c.share, 0)).toBeCloseTo(1, 9);
+  });
+
+  it("holds the identity for the worked example too", () => {
+    const result = normalizedScore(workedAxes());
+    const total = result.contributions.reduce((s, c) => s + c.contribution, 0);
+
+    expect(total).toBeCloseTo(result.score as number, 9);
+  });
+
+  it("holds the identity when four of five axes are unobservable", () => {
+    const axes = contractAxes().map((a): Axis =>
+      a.key === "lp_residual" ? a : { ...a, score: null, status: "unknown" },
+    );
+    const result = normalizedScore(axes);
+    const total = result.contributions.reduce((s, c) => s + c.contribution, 0);
+
+    expect(total).toBeCloseTo(result.score as number, 9);
+    expect(result.score).toBeCloseTo(30, 9);
+  });
+});
