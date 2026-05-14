@@ -172,3 +172,20 @@ issues) and `BazrConfigError`. Full reference in
 
 ---
 
+## Quick start -- CLI
+
+These assume `bazr` is on your `PATH` after `npm link`. Without it, substitute
+`node packages/cli/dist/bazr.js` for `bazr`.
+
+```bash
+export BAZR_API=https://api.bazr.market
+
+bazr health
+bazr stats
+bazr relic So11111111111111111111111111111111111111112
+bazr stalls --sort record --limit 20
+bazr crate show 3
+bazr haggle --in <mint> --out <mint> --amount 1000000 --slippage-bps 100
+bazr tags <mint> --json
+```
+
