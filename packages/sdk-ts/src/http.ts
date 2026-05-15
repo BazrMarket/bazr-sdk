@@ -146,3 +146,209 @@ export function computeBackoff(attempt: number, opts: ResolvedRetryOptions): num
   // Equal jitter: keeps half the backoff deterministic, randomises the rest.
   return Math.round(capped / 2 + Math.random() * (capped / 2));
 }
+
+/* -------------------------------------------------------------------------- */
+/* request                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export interface RequestSpec {
+  method: string;
+  url: string;
+  body?: unknown;
+  headers?: Record<string, string>;
+  signal?: unknown;
+}
+
+export interface RequestDeps {
+  fetch: FetchLike;
+  timeoutMs: number;
+  retry: ResolvedRetryOptions;
+  userAgent: string | null;
+}
+
+interface AbortControllerLike {
+  signal: unknown;
+  abort(): void;
+}
+
+function newAbortController(): AbortControllerLike | null {
+  const ctor = (globalThis as { AbortController?: new () => AbortControllerLike }).AbortController;
+  return typeof ctor === "function" ? new ctor() : null;
+}
+
+function decodeErrorBody(body: string): { code?: string; message?: string; detail?: unknown } {
+  if (body.trim() === "") return {};
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return {};
+  }
+  const envelope = ApiErrorEnvelopeSchema.safeParse(parsed);
+  if (envelope.success) return envelope.data.error;
+  // Some proxies answer with `{"detail": "..."}`; use it rather than dropping it.
+  if (parsed && typeof parsed === "object" && "detail" in parsed) {
+    const detail = (parsed as { detail: unknown }).detail;
+    if (typeof detail === "string") return { message: detail };
+    return { detail };
+  }
+  return {};
+}
+
+function truncate(text: string, max = 500): string {
+  return text.length <= max ? text : `${text.slice(0, max)}...`;
+}
+
+async function fetchOnce(
+  spec: RequestSpec,
+  deps: RequestDeps,
+  attempt: number,
+): Promise<FetchResponseLike> {
+  const controller = newAbortController();
+  let timedOut = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  if (controller && deps.timeoutMs > 0) {
+    timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, deps.timeoutMs);
+  }
+
+  const headers: Record<string, string> = { accept: "application/json", ...spec.headers };
+  if (spec.body !== undefined) headers["content-type"] = "application/json";
+  if (deps.userAgent) headers["user-agent"] = deps.userAgent;
+
+  try {
+    return await deps.fetch(spec.url, {
+      method: spec.method,
+      headers,
+      ...(spec.body === undefined ? {} : { body: JSON.stringify(spec.body) }),
+      ...(controller ? { signal: controller.signal } : spec.signal ? { signal: spec.signal } : {}),
+    });
+  } catch (cause) {
+    if (timedOut) {
+      throw new BazrTimeoutError(
+        `Request timed out after ${deps.timeoutMs}ms`,
+        { url: spec.url, method: spec.method, attempts: attempt, timeoutMs: deps.timeoutMs, cause },
+      );
+    }
+    throw new BazrNetworkError(networkMessage(cause), {
+      url: spec.url,
+      method: spec.method,
+      attempts: attempt,
+      cause,
+    });
+  } finally {
+    if (timer !== null) clearTimeout(timer);
+  }
+}
+
+function networkMessage(cause: unknown): string {
+  const err = cause as { message?: string; cause?: { code?: string; message?: string } };
+  const code = err?.cause?.code;
+  const base = err?.message ?? String(cause);
+  return code ? `${base} (${code})` : base;
+}
+
+/** Performs the request with the retry policy and returns the raw JSON value. */
+export async function requestJson(spec: RequestSpec, deps: RequestDeps): Promise<unknown> {
+  const { retry } = deps;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= retry.maxAttempts; attempt += 1) {
+    const isLast = attempt === retry.maxAttempts;
+    let res: FetchResponseLike;
+
+    try {
+      res = await fetchOnce(spec, deps, attempt);
+    } catch (err) {
+      lastError = err;
+      const reason: RetryReason = err instanceof BazrTimeoutError ? "timeout" : "network";
+      if (isLast || !retry.retryOnNetworkError) throw err;
+      const delayMs = computeBackoff(attempt, retry);
+      retry.onRetry?.({ attempt, delayMs, reason, status: null, url: spec.url });
+      await retry.sleep(delayMs);
+      continue;
+    }
+
+    if (res.ok) {
+      const text = await res.text();
+      if (text.trim() === "") return null;
+      try {
+        return JSON.parse(text) as unknown;
+      } catch (cause) {
+        throw new BazrValidationError("Response body was not valid JSON", {
+          url: spec.url,
+          method: spec.method,
+          attempts: attempt,
+          received: truncate(text),
+          cause,
+        });
+      }
+    }
+
+    const body = await res.text().catch(() => "");
+    const decoded = decodeErrorBody(body);
+    const message = decoded.message ?? res.statusText ?? `HTTP ${res.status}`;
+
+    if (res.status === 429) {
+      const retryAfterMs = parseRetryAfter(res.headers.get("retry-after"));
+      const wait = retryAfterMs ?? computeBackoff(attempt, retry);
+      const tooLong = retryAfterMs !== null && retryAfterMs > retry.maxRetryAfterMs;
+
+      if (isLast || tooLong) {
+        throw new BazrRateLimitError(message, {
+          url: spec.url,
+          method: spec.method,
+          attempts: attempt,
+          code: decoded.code ?? "rate_limited",
+          detail: decoded.detail,
+          body: truncate(body),
+          retryAfterMs,
+        });
+      }
+      retry.onRetry?.({ attempt, delayMs: wait, reason: "rate_limit", status: 429, url: spec.url });
+      await retry.sleep(wait);
+      continue;
+    }
+
+    if (res.status >= 500) {
+      const apiError = new BazrApiError(message, {
+        url: spec.url,
+        method: spec.method,
+        attempts: attempt,
+        status: res.status,
+        code: decoded.code,
+        detail: decoded.detail,
+        body: truncate(body),
+      });
+      lastError = apiError;
+      if (isLast) throw apiError;
+      const delayMs = computeBackoff(attempt, retry);
+      retry.onRetry?.({
+        attempt,
+        delayMs,
+        reason: "server_error",
+        status: res.status,
+        url: spec.url,
+      });
+      await retry.sleep(delayMs);
+      continue;
+    }
+
+    // 4xx other than 429: the request itself is wrong. Retrying cannot fix it.
+    throw new BazrApiError(message, {
+      url: spec.url,
+      method: spec.method,
+      attempts: attempt,
+      status: res.status,
+      code: decoded.code,
+      detail: decoded.detail,
+      body: truncate(body),
+    });
+  }
+
+  /* istanbul ignore next -- the loop always returns or throws */
+  throw lastError ?? new BazrNetworkError("Request failed with no response", { url: spec.url });
+}
