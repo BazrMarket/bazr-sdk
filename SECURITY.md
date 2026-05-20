@@ -29,3 +29,22 @@ this table gains a published-version column.
 
 ---
 
+## Reporting a vulnerability
+
+**Use GitHub Security Advisories. Do not open a public issue.**
+
+Report privately here:
+
+https://github.com/BazrMarket/bazr-sdk/security/advisories/new
+
+That form is the only reporting channel this project maintains. It is private
+between you and the maintainers until an advisory is published, and it keeps the
+report attached to the repository, so nothing is lost in a personal inbox. No
+email address, DM handle or bug bounty platform is listed here on purpose: a
+contact that does not exist, or that nobody watches, is worse than no contact at
+all.
+
+If GitHub Security Advisories is unavailable to you, open a public issue that
+says only "I have a security report and cannot use the advisory form", with no
+technical detail, and wait to be contacted.
+
