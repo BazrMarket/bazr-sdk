@@ -261,3 +261,55 @@ export const HaggleQuoteSchema = z.object({
   warning: nullableText,
 });
 export type HaggleQuote = z.infer<typeof HaggleQuoteSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* market / health                                                             */
+/* -------------------------------------------------------------------------- */
+
+const optionalCount = z.number().nullish().transform((v) => v ?? null);
+
+export const MarketStatsSchema = z.object({
+  relics_scored: optionalCount,
+  stalls: optionalCount,
+  aftermarket_volume_usd: optionalCount,
+  crates_live: optionalCount,
+  anchor_version: nullableText,
+  /** Chain the scored tokens are read from. Says nothing about the program. */
+  data_cluster: nullableText,
+  /**
+   * Chain the Anchor program is deployed on.
+   *
+   * Optional, and optional in the strict sense: with no deployment the service
+   * omits the key rather than sending `null`, because there is no cluster to
+   * name. That is why this is not `nullableText` like the field above -- a
+   * `?? null` transform would turn "absent" into a present value, and the next
+   * step after a present value is a caller filling it in from `data_cluster`.
+   * That substitution is the whole reason the single `cluster` field was split:
+   * it advertised a devnet program as running on mainnet.
+   */
+  program_cluster: z.string().optional(),
+});
+export type MarketStats = z.infer<typeof MarketStatsSchema>;
+
+export const HealthSchema = z.object({
+  status: z.string(),
+  version: nullableText,
+  uptime_s: z.number().nullish().transform((v) => v ?? null),
+});
+export type Health = z.infer<typeof HealthSchema>;
+
+export const HealthComponentSchema = z.object({
+  status: z.string(),
+  last_success_at: nullableTimestamp,
+  detail: z.unknown().optional(),
+});
+export type HealthComponent = z.infer<typeof HealthComponentSchema>;
+
+/** Shape is intentionally loose: the contract only fixes the spirit here. */
+export const HealthDetailedSchema = z.object({
+  status: z.string(),
+  version: nullableText,
+  uptime_s: z.number().nullish().transform((v) => v ?? null),
+  components: z.record(z.string(), HealthComponentSchema).nullish().transform((v) => v ?? {}),
+});
+export type HealthDetailed = z.infer<typeof HealthDetailedSchema>;
