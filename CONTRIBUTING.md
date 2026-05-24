@@ -73,3 +73,24 @@ that has already cost this project once.
 
 ---
 
+## Tests
+
+- **No live network calls.** Use `test/helpers/server.ts` in either package. A
+  test that reaches a real RPC endpoint or the real API will time out on a CI
+  runner with no network policy for it, and the failure will look like your
+  change broke something.
+- **No real secrets in fixtures, and no real wallets.** Synthetic values only,
+  including addresses.
+- **Some failures are only visible from outside the runner.**
+  `packages/cli/test/spawned.test.ts` executes `dist/bazr.js` as a real child
+  process. Called in-process, the CLI borrows the test runner's event loop, and a
+  command that would strand a bare `node dist/bazr.js` returns normally. That is
+  not hypothetical: an awaited backoff timer had been excused from holding the
+  process open, `bazr relic` died mid-retry on every cache miss, it exited as
+  though nothing were wrong, and every in-process suite stayed green. If you
+  touch the transport, the retry loop, or process exit, add a spawned test.
+- Score maths, schema parsing and URL construction are pure local computation.
+  They need no mocking at all.
+
+---
+
