@@ -146,3 +146,30 @@ describe("normalizedScore -- relic-spec section 8 verification identity", () => 
     expect(result.score).toBeCloseTo(30, 9);
   });
 });
+
+/** docs/relic-spec.md section 10, reproduced number for number. */
+describe("normalizedScore -- relic-spec section 10 worked example (golden)", () => {
+  it("reproduces relic = 50.45 -> 50 with W_avail = 1.00", () => {
+    const result = normalizedScore(workedAxes());
+
+    expect(result.availableWeight).toBeCloseTo(1.0, 9);
+    expect(result.score).toBeCloseTo(WORKED_EXAMPLE.relic, 9);
+    expect(result.scoreRounded).toBe(WORKED_EXAMPLE.relicRounded);
+    expect(result.unknown).toEqual([]);
+    expect(describeCoverage(result)).toBe("5 of 5 axes observed");
+  });
+
+  it("reproduces every per-axis contribution from the spec", () => {
+    const result = normalizedScore(workedAxes());
+    const actual = Object.fromEntries(result.contributions.map((c) => [c.key, c.contribution]));
+
+    for (const [key, expected] of Object.entries(WORKED_EXAMPLE.contributions)) {
+      expect(actual[key]).toBeCloseTo(expected, 9);
+    }
+  });
+
+  it("the spec's contribution list sums to the spec's relic", () => {
+    const sum = Object.values(WORKED_EXAMPLE.contributions).reduce((s, v) => s + v, 0);
+    expect(sum).toBeCloseTo(WORKED_EXAMPLE.relic, 9);
+  });
+});
