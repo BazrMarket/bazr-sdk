@@ -189,3 +189,24 @@ bazr haggle --in <mint> --out <mint> --amount 1000000 --slippage-bps 100
 bazr tags <mint> --json
 ```
 
+## The relic score: five axes and their weights
+
+The weights are fixed in [`docs/relic-spec.md`](https://github.com/BazrMarket/bazr/blob/main/docs/relic-spec.md)
+section 7, which is the source of truth. They arrive on every axis in the API
+response as `weight`, so the SDK never hard-codes a second copy that could drift.
+
+| Axis | Weight | Why it carries that weight |
+| --- | --- | --- |
+| `lp_residual` | 0.30 | Exit liquidity is the first-order answer to "dead or dormant". Without it, a good reading on every other axis still means nobody can get out. |
+| `floor_shape` | 0.25 | Direct evidence of continued trading. Most graduated tokens simply stop trading. |
+| `holder_dispersion` | 0.20 | Structural risk. Extreme concentration lowers the quality of a dormant token even when liquidity remains. |
+| `dev_wallet_state` | 0.15 | Residual control risk. Graduated tokens have often already revoked authorities, so this axis discriminates less than the two above. |
+| `social_afterglow` | 0.10 | The weakest signal and the easiest to manufacture. Weighted lowest for that reason. |
+| **Total** | **1.00** | |
+
+Verdicts are `dormant`, `dead` or `unclear`. There is no `revival` verdict, no
+probability of recovery, and no field anywhere in the contract that could be read
+as one.
+
+---
+
