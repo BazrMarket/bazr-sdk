@@ -134,3 +134,45 @@ describe("429 rate-limit backoff", () => {
     expect(parseRetryAfter("  ", now)).toBeNull();
   });
 });
+
+describe("5xx exponential backoff", () => {
+  it("5xx retries with exponential backoff and then succeeds", async () => {
+    server = await startMockServer((_req, i) =>
+      i < 2 ? { status: 503, body: { error: { code: "upstream_down", message: "rpc down" } } } : { body: relicPayload() },
+    );
+    const { delays, sleep } = recordingSleep();
+    const client = createBazrClient({
+      baseUrl: server.baseUrl,
+      retry: { maxAttempts: 3, sleep, jitter: false, baseDelayMs: 250 },
+    });
+
+    const relic = await client.getRelic(RELIC_MINT);
+
+    expect(relic.mint).toBe(RELIC_MINT);
+    expect(server.requests).toHaveLength(3);
+    expect(delays).toEqual([250, 500]);
+  });
+
+  it("5xx backoff respects maxDelayMs", () => {
+    const opts = resolveRetryOptions({ jitter: false, baseDelayMs: 1_000, maxDelayMs: 2_000 });
+    expect(computeBackoff(1, opts)).toBe(1_000);
+    expect(computeBackoff(2, opts)).toBe(2_000);
+    expect(computeBackoff(5, opts)).toBe(2_000);
+  });
+
+  it("5xx that never recovers throws BazrApiError with the server error code", async () => {
+    server = await startMockServer(() => ({
+      status: 500,
+      body: { error: { code: "indexer_stalled", message: "indexer is behind" } },
+    }));
+    const { sleep } = recordingSleep();
+    const client = createBazrClient({ baseUrl: server.baseUrl, retry: { maxAttempts: 3, sleep } });
+
+    const err = await client.getRelic(RELIC_MINT).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(BazrApiError);
+    expect((err as BazrApiError).status).toBe(500);
+    expect((err as BazrApiError).code).toBe("indexer_stalled");
+    expect(server.requests).toHaveLength(3);
+  });
+});
