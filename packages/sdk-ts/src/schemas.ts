@@ -313,3 +313,18 @@ export const HealthDetailedSchema = z.object({
   components: z.record(z.string(), HealthComponentSchema).nullish().transform((v) => v ?? {}),
 });
 export type HealthDetailed = z.infer<typeof HealthDetailedSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* errors                                                                      */
+/* -------------------------------------------------------------------------- */
+
+export const ApiErrorEnvelopeSchema = z.object({
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+    detail: z.unknown().optional(),
+  }),
+});
+export type ApiErrorEnvelope = z.infer<typeof ApiErrorEnvelopeSchema>;
+
+export const isoTimestampSchema = isoTimestamp;
