@@ -48,3 +48,16 @@ If GitHub Security Advisories is unavailable to you, open a public issue that
 says only "I have a security report and cannot use the advisory form", with no
 technical detail, and wait to be contacted.
 
+### What to include
+
+A report is actionable when it lets someone else reproduce it. Please include:
+
+- The affected package and the commit hash or version.
+- What an attacker gains, in one sentence.
+- Exact reproduction steps. For the SDK, the request and the response payload.
+  For the CLI, the exact argument vector and the environment.
+- Any proof-of-concept code, as a patch or a script.
+- Your assessment of severity, and whether you have disclosed it elsewhere.
+
+Please do not test against other people's wallets, funds or infrastructure.
+
