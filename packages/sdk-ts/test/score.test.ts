@@ -173,3 +173,49 @@ describe("normalizedScore -- relic-spec section 10 worked example (golden)", () 
     expect(sum).toBeCloseTo(WORKED_EXAMPLE.relic, 9);
   });
 });
+
+describe("axisRows -- rendering surface always sees all five axes", () => {
+  it("returns all five canonical axes in contract order", () => {
+    const rows = axisRows(contractAxes());
+    expect(rows.map((r) => r.key)).toEqual([...AXIS_KEYS]);
+  });
+
+  it("marks unknown axes with a null score and a null render contribution", () => {
+    const rows = axisRows(contractAxes());
+    const dev = rows.find((r) => r.key === "dev_wallet_state");
+
+    expect(dev?.status).toBe("unknown");
+    expect(dev?.score).toBeNull();
+    // Deliberately null and not the spec's numeric 0, so a table cannot print
+    // "0" for an axis nobody measured. The spec's 0 lives on
+    // normalizedScore().contributions and is asserted above.
+    expect(dev?.contribution).toBeNull();
+    expect(dev?.absent).toBe(false);
+  });
+
+  it("fills in axes the payload omitted entirely and flags them as absent", () => {
+    const axes = contractAxes().filter((a) => a.key !== "social_afterglow");
+    const rows = axisRows(axes);
+    const social = rows.find((r) => r.key === "social_afterglow");
+
+    expect(rows).toHaveLength(5);
+    expect(social?.absent).toBe(true);
+    expect(social?.status).toBe("unknown");
+    expect(social?.score).toBeNull();
+    expect(social?.label).toBe("Social afterglow");
+    expect(normalizedScore(axes).missing).toEqual(["social_afterglow"]);
+  });
+
+  it("recomputes the contribution rather than trusting the one the service sent", () => {
+    const axes = contractAxes().map((a): Axis =>
+      a.key === "holder_dispersion" ? { ...a, contribution: 999 } : a,
+    );
+    const rows = axisRows(axes);
+    const holder = rows.find((r) => r.key === "holder_dispersion");
+    const expected = (byKey(axes, "holder_dispersion").weight / 0.75) * 62;
+
+    expect(holder?.reportedContribution).toBe(999);
+    expect(holder?.contribution).toBeCloseTo(expected, 9);
+    expect(holder?.contribution).not.toBe(999);
+  });
+});
