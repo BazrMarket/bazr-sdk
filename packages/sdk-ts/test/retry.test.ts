@@ -176,3 +176,74 @@ describe("5xx exponential backoff", () => {
     expect(server.requests).toHaveLength(3);
   });
 });
+
+describe("failures that must not be retried or swallowed", () => {
+  it("4xx is thrown immediately without a retry", async () => {
+    server = await startMockServer(() => ({
+      status: 404,
+      body: { error: { code: "relic_not_found", message: "no record for that mint" } },
+    }));
+    const { delays, sleep } = recordingSleep();
+    const client = createBazrClient({ baseUrl: server.baseUrl, retry: { maxAttempts: 3, sleep } });
+
+    const err = await client.getRelic(RELIC_MINT).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(BazrApiError);
+    expect((err as BazrApiError).status).toBe(404);
+    expect((err as BazrApiError).code).toBe("relic_not_found");
+    expect(server.requests).toHaveLength(1);
+    expect(delays).toEqual([]);
+  });
+
+  it("a refused connection retries and then throws a readable BazrNetworkError", async () => {
+    const port = await findClosedPort();
+    const { delays, sleep } = recordingSleep();
+    const client = createBazrClient({
+      baseUrl: `http://127.0.0.1:${port}`,
+      retry: { maxAttempts: 2, sleep, jitter: false, baseDelayMs: 5 },
+    });
+
+    const err = await client.getStats().catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(BazrNetworkError);
+    expect(describeError(err)).toContain("Cannot reach");
+    expect(describeError(err)).toContain("ECONNREFUSED");
+    expect(delays).toHaveLength(1);
+  });
+
+  it("a hung request aborts and throws BazrTimeoutError, not a silent empty result", async () => {
+    server = await startMockServer(() => ({ body: relicPayload(), delayMs: 400 }));
+    const client = createBazrClient({
+      baseUrl: server.baseUrl,
+      timeoutMs: 60,
+      retry: { maxAttempts: 1 },
+    });
+
+    const err = await client.getRelic(RELIC_MINT).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(BazrTimeoutError);
+    expect((err as BazrTimeoutError).timeoutMs).toBe(60);
+    expect(describeError(err)).toContain("within 60ms");
+  });
+
+  it("onRetry reports every backoff with its reason", async () => {
+    server = await startMockServer((_req, i) =>
+      i === 0 ? { status: 503, body: {} } : i === 1 ? { status: 429, headers: { "retry-after": "1" }, body: {} } : { body: relicPayload() },
+    );
+    const seen: string[] = [];
+    const { sleep } = recordingSleep();
+    const client = createBazrClient({
+      baseUrl: server.baseUrl,
+      retry: {
+        maxAttempts: 3,
+        sleep,
+        jitter: false,
+        onRetry: (info) => seen.push(`${info.reason}:${info.delayMs}`),
+      },
+    });
+
+    await client.getRelic(RELIC_MINT);
+
+    expect(seen).toEqual(["server_error:250", "rate_limit:1000"]);
+  });
+});
