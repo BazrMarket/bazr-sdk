@@ -94,3 +94,36 @@ that has already cost this project once.
 
 ---
 
+## Changing the score
+
+**A pull request that changes how a relic score is produced must change
+[`docs/relic-spec.md`](https://github.com/BazrMarket/bazr/blob/main/docs/relic-spec.md)
+in the main repository first, and must link that change.**
+
+This covers axis weights, axis definitions, verdict thresholds, coverage rules,
+and anything that moves a token between `dormant`, `dead` and `unclear`.
+
+The specification is the published claim. The code is the implementation of that
+claim. If the code moves and the specification does not, then the published
+formula is no longer the formula being run, and the whole reason to trust the
+number is gone.
+
+Two rules inside the model are not up for negotiation, so propose changes to them
+with a full argument rather than a patch:
+
+1. **An unobserved axis is removed from the weighting denominator and the
+   remaining weights are re-normalised. It is never folded in as a zero.**
+   Missing data and bad data are different events. Folding an unobserved axis to
+   zero makes a token whose lookup failed render identically to a token that was
+   measured and found dead.
+2. **Low coverage produces the verdict `unclear`, not a low score.** `unclear` is
+   a real answer. Padding it into a number that looks complete is the failure
+   mode this project exists to avoid.
+
+The SDK does not hold its own copy of the weights. They arrive on every `Axis` as
+`weight`, straight from the service. Hard-coding them here would create a second
+source of truth that drifts silently, and the drift would be invisible because
+both numbers would look plausible.
+
+---
+
