@@ -1,0 +1,59 @@
+{
+  "name": "bazr-cli",
+  "version": "0.1.0",
+  "description": "Terminal client for BAZR -- relic survival signals, stall records, crates and haggle route quotes for graduated Solana meme tokens.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BazrMarket/bazr-sdk.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/BazrMarket/bazr-sdk/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/BazrMarket/bazr-sdk/issues"
+  },
+  "type": "module",
+  "bin": {
+    "bazr": "dist/bazr.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup && chmod +x dist/bazr.js",
+    "clean": "rm -rf dist",
+    "dev:link": "npm install ../sdk-ts --no-save --no-workspaces",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "gate:emoji": "node scripts/gate-emoji.mjs ../sdk-ts .",
+    "gate:emoji:selftest": "node scripts/gate-emoji.mjs --selftest",
+    "start": "node dist/bazr.js"
+  },
+  "dependencies": {
+    "@bazr/sdk": "^0.1.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  },
+  "keywords": [
+    "solana",
+    "bazr",
+    "cli",
+    "relic",
+    "aftermarket",
+    "memecoin"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
