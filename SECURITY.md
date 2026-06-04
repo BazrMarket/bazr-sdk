@@ -61,3 +61,14 @@ A report is actionable when it lets someone else reproduce it. Please include:
 
 Please do not test against other people's wallets, funds or infrastructure.
 
+### What to expect
+
+These are targets, not promises, and they are what the maintainers work to:
+
+| Stage | Target |
+| --- | --- |
+| Acknowledgement that the report arrived | 3 business days |
+| Initial assessment and severity triage | 7 calendar days |
+| Fix or documented mitigation for high severity | 30 calendar days |
+| Public advisory after a fix ships | Coordinated with the reporter |
+
