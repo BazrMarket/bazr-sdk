@@ -219,3 +219,9 @@ describe("axisRows -- rendering surface always sees all five axes", () => {
     expect(holder?.contribution).not.toBe(999);
   });
 });
+
+describe("describeCoverage", () => {
+  it("states how many axes were actually observed", () => {
+    expect(describeCoverage(normalizedScore(contractAxes()))).toBe("3 of 5 axes observed");
+  });
+});
