@@ -41,3 +41,21 @@ scoped package needs in order to be published at all, so the release is a
 decision rather than a piece of missing work. It has not been made yet, and this
 section will say so until it has.
 
+## Usage
+
+```ts
+import { createBazrClient, axisRows, normalizedScore } from "@bazr/sdk";
+
+const bazr = createBazrClient({ baseUrl: "http://localhost:8030" });
+
+const relic = await bazr.getRelic("So11111111111111111111111111111111111111112");
+
+console.log(relic.score, relic.verdict);   // 47 "unclear"
+console.log(relic.disclaimer);
+
+for (const row of axisRows(relic.axes)) {
+  // Unknown axes come back with score null. Print "--", not 0.
+  console.log(row.label, row.score ?? "--", row.contribution ?? "no data");
+}
+```
+
