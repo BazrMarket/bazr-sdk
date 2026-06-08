@@ -210,3 +210,48 @@ as one.
 
 ---
 
+## Unknown axes leave the denominator
+
+This is the single most important behaviour in the SDK, and it is why the score
+maths lives in a file anyone can read
+([`packages/sdk-ts/src/score.ts`](packages/sdk-ts/src/score.ts)).
+
+When an axis cannot be observed, the API returns `status: "unknown"` and
+`score: null`. `normalizedScore()` **removes that axis from the weighting
+denominator and re-normalises the remaining weights over each other.** It is
+never folded in as a zero.
+
+```
+available = { a in axes : a.status == "ok" and a.score is a number }
+W_avail   = SUM of W_a over available
+relic     = SUM (W_a * a.score) over available / W_avail
+a.contribution = (W_a / W_avail) * a.score      for available axes
+```
+
+Folding an unobserved axis in as a zero would make a token whose data lookup
+failed render identically to a token that was measured and found dead. Those are
+different claims, and a number that collapses them into one is worse than no
+number. If not one axis is observable, `score` is `null` -- never `0` -- and the
+verdict is `unclear`.
+
+The consequence is that a score always travels with a coverage figure. A score
+computed over two of five axes is not the same object as a score computed over
+five of five, even when the two numbers are equal, and every rendering surface in
+this repository says which one you are looking at.
+
+```ts
+const n = normalizedScore(relic.axes);
+
+n.score;           // weighted mean over observable axes only, or null
+n.observed;        // ["lp_residual", "floor_shape", "holder_dispersion"]
+n.unknown;         // ["dev_wallet_state", "social_afterglow"]
+n.missing;         // canonical axes the payload did not contain at all
+n.weightCoverage;  // 0.75 -- how much of the total weight was observable
+n.contributions;   // per-axis contribution after re-normalisation
+```
+
+Low coverage produces the verdict `unclear`, not a low score. `unclear` is a real
+answer that means the data was not there.
+
+---
+
