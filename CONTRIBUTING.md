@@ -127,3 +127,21 @@ both numbers would look plausible.
 
 ---
 
+## What the renderers are required to show
+
+These are behavioural contracts, not style preferences. A pull request that
+removes one will be asked to put it back:
+
+- An axis that could not be observed prints `--` and `no data`, never `0`.
+- The observed-axis count and the fraction of the weight it covered are printed
+  next to any score.
+- The contribution column sums are printed next to the score the API reported, so
+  a mismatch is visible rather than hidden.
+- Stall records print wins and losses as separate raw counts. There is no
+  win-rate column: a rate alone lets a bad record hide behind its denominator.
+- Labels are printed as reported, including low-confidence alerts. Rug and bundle
+  traces are not filtered out.
+- The API disclaimer is printed on every command.
+
+---
+
