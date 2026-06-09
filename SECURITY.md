@@ -72,3 +72,15 @@ These are targets, not promises, and they are what the maintainers work to:
 | Fix or documented mitigation for high severity | 30 calendar days |
 | Public advisory after a fix ships | Coordinated with the reporter |
 
+### Disclosure
+
+This project follows coordinated disclosure. The default embargo is 90 days from
+acknowledgement, shortened when a fix ships earlier and extended when a fix needs
+downstream coordination. Reporters are credited in the advisory by whatever name
+they choose, and may ask to stay anonymous.
+
+If a report is already being exploited in the wild, say so in the first message.
+That changes the schedule.
+
+---
+
