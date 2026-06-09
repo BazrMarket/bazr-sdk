@@ -145,3 +145,14 @@ removes one will be asked to put it back:
 
 ---
 
+## Commit messages
+
+**Write a plain English imperative sentence. No prefix, no colon, no scope.**
+
+This project does not use Conventional Commits. Do not open a message with
+`feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `ci`, `perf` or
+`style`. More generally: **the message must not begin with a token followed by a
+colon**, in any form, including `word:`, `word(scope):` and `word(scope)!:`.
+
+Capitalise the first word. No trailing period. Roughly 72 characters or fewer.
+
