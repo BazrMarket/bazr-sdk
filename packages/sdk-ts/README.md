@@ -59,3 +59,40 @@ for (const row of axisRows(relic.axes)) {
 }
 ```
 
+### Client options
+
+```ts
+createBazrClient({
+  baseUrl: "http://localhost:8030",
+  fetch: myFetch,        // optional; defaults to globalThis.fetch
+  timeoutMs: 10_000,     // per attempt; 0 disables
+  headers: { "x-trace": "..." },
+  userAgent: null,       // browsers forbid setting user-agent
+  retry: {
+    maxAttempts: 3,      // total attempts including the first
+    baseDelayMs: 250,
+    maxDelayMs: 8_000,
+    maxRetryAfterMs: 30_000,  // a longer Retry-After throws instead of sleeping
+    jitter: true,
+    retryOnNetworkError: true,
+    onRetry: (info) => console.warn(info.reason, info.delayMs),
+    sleep: (ms) => new Promise((r) => setTimeout(r, ms)),  // see below
+  },
+});
+```
+
+`timeoutMs` is per attempt, and the right value depends on the endpoint.
+`/health` and `/stall` answer in well under a second; scoring a mint the
+service has not seen walks its holder pages first -- measured against
+production, `/relic/{mint}` took 28.8s cold and `/relic/{mint}/tags` 47.7s. A
+single blanket 10s makes those two impossible to call successfully.
+
+A custom `sleep` must keep the process alive until it settles. Handing in a
+timer that has been `unref`'d looks harmless -- it reads as "do not hold the
+process open for a backoff" -- but the retry loop *awaits* this promise, and by
+then the failed request has released its socket. With nothing else pending,
+Node exits mid-wait and the await never settles: the rest of the retry loop and
+everything the caller meant to do afterwards are abandoned, with no error
+raised and no failing status. Use a plain `setTimeout`, and cancel through
+`AbortSignal` if a request needs to be abandoned.
+
