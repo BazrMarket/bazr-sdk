@@ -255,3 +255,26 @@ answer that means the data was not there.
 
 ---
 
+## API surface
+
+| SDK method | CLI command | Endpoint |
+| --- | --- | --- |
+| `getRelic(mint, { refresh })` | `bazr relic <mint>` | `GET /relic/{mint}` |
+| `getTags(mint)` | `bazr tags <mint>` | `GET /relic/{mint}/tags` |
+| `listStalls({ sort, limit, cursor })` | `bazr stalls` | `GET /stall` |
+| `getStall(owner)` | `bazr stall <owner>` | `GET /stall/{owner}` |
+| `listCrates({ limit, cursor })` | `bazr crate list` | `GET /crate` |
+| `getCrate(id)` | `bazr crate show <id>` | `GET /crate/{id}` |
+| `quoteHaggle(req)` | `bazr haggle` | `POST /haggle/quote` |
+| `getStats()` | `bazr stats` | `GET /market/stats` |
+| `getHealth()` / `getHealthDetailed()` | `bazr health` | `GET /health`, `GET /health/detailed` |
+
+Two things the surface deliberately does not carry. Stall records expose
+`resolved_wins` and `resolved_losses` as separate raw counts with no win-rate
+field, because a rate alone lets a bad record hide behind its denominator. And
+`haggle` is a route simulation over liquidity that already exists -- BAZR runs no
+order book, no AMM and no perps of its own, and the quote names the router it
+used in its `source` field.
+
+---
+
