@@ -27,3 +27,37 @@ export function groupDigits(value: string): string {
   const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return negative ? `-${grouped}` : grouped;
 }
+
+/** Wallet and stall addresses may be shortened; a queried mint never is. */
+export function shortenAddress(value: string, keep = 4): string {
+  if (value.length <= keep * 2 + 3) return value;
+  return `${value.slice(0, keep)}...${value.slice(-keep)}`;
+}
+
+export function formatTimestamp(value: string | null): string {
+  if (value === null) return "unknown";
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return value;
+  return new Date(parsed).toISOString().replace("T", " ").replace(/\.\d+Z$/, "Z");
+}
+
+export function formatDate(value: string | null): string {
+  if (value === null) return "unknown";
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return value;
+  return new Date(parsed).toISOString().slice(0, 10);
+}
+
+export function formatCount(value: number | null): string {
+  return value === null ? "--" : groupDigits(String(Math.round(value)));
+}
+
+export function formatUsd(value: number | null): string {
+  if (value === null) return "--";
+  return `$${groupDigits(Math.round(value).toString())}`;
+}
+
+/** Yes/no as words, never as a glyph. */
+export function formatFlag(value: boolean): string {
+  return value ? "YES" : "no";
+}
