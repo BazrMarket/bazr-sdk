@@ -278,3 +278,20 @@ used in its `source` field.
 
 ---
 
+## On-chain program
+
+The `bazr-market` Anchor program is deployed to **Solana devnet only. It is not
+deployed to mainnet.**
+
+| Field | Value |
+| --- | --- |
+| Program ID | `FSLSR2xYiR5NPWg6g8DZ1KyVRVa7xW37gDStbaDfSXLb` |
+| Cluster | `devnet` |
+| Anchor | 0.31.1 |
+| Explorer | [explorer.solana.com/address/FSLSR2xYiR5NPWg6g8DZ1KyVRVa7xW37gDStbaDfSXLb?cluster=devnet](https://explorer.solana.com/address/FSLSR2xYiR5NPWg6g8DZ1KyVRVa7xW37gDStbaDfSXLb?cluster=devnet) |
+
+Neither package in this repository submits a transaction or holds a key. Both are
+read-only HTTP clients. The program source lives in the main repository.
+
+---
+
