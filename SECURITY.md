@@ -86,3 +86,21 @@ That changes the schedule.
 
 ## Scope
 
+### In scope
+
+- **`packages/sdk-ts/`** -- schema validation that can be bypassed so a caller
+  receives an unvalidated object; URL or path construction that sends a request
+  somewhere the caller did not intend; credentials or headers leaking into error
+  messages or logs; retry logic that can be driven into amplification against a
+  third party; a response that can strand the caller's process instead of
+  resolving or throwing.
+- **`packages/cli/`** -- argument or environment handling that leads to command
+  execution or file access the user did not ask for; output that misrepresents an
+  axis, a coverage figure or a stall record; an exit status that reports success
+  after a failure.
+- **Scoring correctness that changes a verdict** -- coverage accounting,
+  re-normalisation of missing axes, and verdict thresholds. See the section
+  below.
+- **Supply chain** -- a dependency in this repository with a known advisory, or a
+  build script that fetches code at install time.
+
