@@ -82,3 +82,31 @@ export class TagBox {
     return [...this.lines];
   }
 }
+
+export function wrap(value: string, at: number): string[] {
+  const words = value.split(/\s+/).filter((w) => w.length > 0);
+  if (words.length === 0) return [""];
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    if (current === "") current = word;
+    else if (current.length + 1 + word.length <= at) current += ` ${word}`;
+    else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current !== "") lines.push(current);
+  return lines;
+}
+
+/** `[####......]` -- an ASCII meter. `null` renders as `no data`, never as empty. */
+export function meter(value: number | null, cells = 10): string {
+  if (value === null) return `[${"no data".padEnd(cells).slice(0, cells)}]`;
+  const filled = Math.max(0, Math.min(cells, Math.round((value / 100) * cells)));
+  return `[${"#".repeat(filled)}${".".repeat(cells - filled)}]`;
+}
+
+export function segWidth(segs: readonly Seg[]): number {
+  return width(segs);
+}
