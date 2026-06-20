@@ -156,3 +156,13 @@ colon**, in any form, including `word:`, `word(scope):` and `word(scope)!:`.
 
 Capitalise the first word. No trailing period. Roughly 72 characters or fewer.
 
+### Do this
+
+```
+Remove unknown axes from the weighting denominator
+Honour Retry-After when the API returns 429
+Decode base58 fully instead of matching on length
+Publish the axis weights alongside the score
+Bump zod to 4.4.3
+```
+
