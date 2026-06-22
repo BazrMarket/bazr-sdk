@@ -96,3 +96,17 @@ everything the caller meant to do afterwards are abandoned, with no error
 raised and no failing status. Use a plain `setTimeout`, and cancel through
 `AbortSignal` if a request needs to be abandoned.
 
+### Methods
+
+| Method | Endpoint |
+| --- | --- |
+| `getRelic(mint, { refresh })` | `GET /relic/{mint}` |
+| `getTags(mint)` | `GET /relic/{mint}/tags` |
+| `listStalls({ sort, limit, cursor })` | `GET /stall` |
+| `getStall(owner)` | `GET /stall/{owner}` |
+| `listCrates({ limit, cursor })` | `GET /crate` |
+| `getCrate(id)` | `GET /crate/{id}` |
+| `quoteHaggle(req)` | `POST /haggle/quote` |
+| `getStats()` | `GET /market/stats` |
+| `getHealth()` / `getHealthDetailed()` | `GET /health`, `GET /health/detailed` |
+
