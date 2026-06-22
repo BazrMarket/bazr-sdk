@@ -166,3 +166,24 @@ Publish the axis weights alongside the score
 Bump zod to 4.4.3
 ```
 
+### Not this
+
+```
+feat: remove unknown axes from the weighting denominator
+fix(sdk): honour Retry-After when the API returns 429
+chore: bump zod to 4.4.3
+sdk: add the crate list endpoint
+```
+
+The last one has no Conventional Commits keyword in it and is still wrong. The
+banned shape is `token` followed by `:` at the start of the line, whatever the
+token is.
+
+Check your own branch before you open a pull request. This should print nothing:
+
+```bash
+git log --format=%s origin/main..HEAD | grep -E '^[A-Za-z][A-Za-z0-9_-]*(\([^)]*\))?!?:'
+```
+
+---
+
