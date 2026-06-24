@@ -295,3 +295,29 @@ read-only HTTP clients. The program source lives in the main repository.
 
 ---
 
+## Repository layout
+
+```
+bazr-sdk/
+  packages/
+    sdk-ts/            @bazr/sdk
+      src/
+        client.ts      endpoint methods
+        http.ts        timeout, Retry-After, exponential backoff
+        schemas.ts     zod contract mirror; types are inferred from it
+        score.ts       re-normalisation over observed axes
+        errors.ts      typed error hierarchy and describeError
+      test/            58 tests
+    cli/               bazr-cli
+      src/
+        commands/      relic, tags, stalls, crate, haggle
+        ui/            table, box, meter, colour theme
+      scripts/
+        gate-emoji.mjs glyph scanner with its own control group
+      test/            62 tests, including spawned-process tests
+  .github/workflows/
+    ci.yml             typecheck, build and test for both packages
+```
+
+---
+
