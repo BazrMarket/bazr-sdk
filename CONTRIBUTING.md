@@ -187,3 +187,35 @@ git log --format=%s origin/main..HEAD | grep -E '^[A-Za-z][A-Za-z0-9_-]*(\([^)]*
 
 ---
 
+## No emoji
+
+**No emoji anywhere.** Not in commit messages, not in code, not in comments, not
+in documentation, not in pull request titles or descriptions, not in test names,
+not in log output, and not in anything the interface renders.
+
+This includes GitHub shortcodes such as `:fire:` and `:rocket:`, and it includes
+symbol characters used as status marks. Write `PASS` and `FAIL`, or `O` and `X`.
+
+Reasons, since "house style" is not one:
+
+- Emoji render differently on every platform and some do not render at all.
+- They break `grep`, alignment and terminal width maths.
+- A score that claims to be an observation should not be decorated like an
+  advertisement.
+
+The repository ships the scanner and its control group, so you can check your own
+work before CI does:
+
+```bash
+cd packages/cli
+npm run gate:emoji:selftest    # control group; run this first
+npm run gate:emoji
+```
+
+The selftest exists because a detector that always fails passes an audit just as
+easily as one that always succeeds. It checks that the scanner fires on seeded
+violations *and* stays quiet on clean source. `scanned=0` is a self-failure, not
+a pass.
+
+---
+
