@@ -123,3 +123,14 @@ That changes the schedule.
 
 ---
 
+## Limits of the relic score
+
+**A relic score is an observational summary, not a financial judgement.** It
+compresses what could be observed about a token after graduation into one number
+and five axes. It is not a prediction, not a rating, not a recommendation, and
+not a statement that a token is safe.
+
+**Do not use a relic score as a reason to buy or sell anything.** It is a starting
+point for your own reading of the on-chain data, and the axis breakdown exists so
+you can go check the underlying facts yourself rather than trust the number.
+
