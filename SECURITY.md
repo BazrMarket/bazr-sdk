@@ -104,3 +104,22 @@ That changes the schedule.
 - **Supply chain** -- a dependency in this repository with a known advisory, or a
   build script that fetches code at install time.
 
+### Out of scope
+
+- Third-party services this project reads from. Report those to their own
+  security programs. This includes Solana RPC providers, Helius, Dexscreener and
+  Jupiter.
+- The hosted web frontend and the indexing service. They are not in this
+  repository.
+- The `bazr-market` Anchor program. It lives in
+  [BazrMarket/bazr](https://github.com/BazrMarket/bazr) and reports go there.
+- Denial of service against public RPC endpoints, and load testing of any kind
+  against infrastructure you do not own.
+- Market outcomes. A token going to zero is not a vulnerability.
+- Automated scanner output with no reproduction and no analysis.
+- Social engineering, phishing of maintainers, and physical access.
+- Attacks that require the victim to have already lost their private key.
+- Missing rate limits on a local development server.
+
+---
+
