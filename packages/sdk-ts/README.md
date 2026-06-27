@@ -110,3 +110,25 @@ raised and no failing status. Use a plain `setTimeout`, and cancel through
 | `getStats()` | `GET /market/stats` |
 | `getHealth()` / `getHealthDetailed()` | `GET /health`, `GET /health/detailed` |
 
+## Unknown axes
+
+A relic score is a weighted mean over five axes. When an axis cannot be observed
+the API returns `status: "unknown"` and `score: null`.
+
+`normalizedScore(axes)` drops those axes and re-normalises the weights of the
+rest. Folding them in as zeros would make every token with a failed data lookup
+render as dead, which is a different claim than "we could not observe this".
+
+```ts
+const n = normalizedScore(relic.axes);
+
+n.score;           // weighted mean over observable axes only, or null
+n.observed;        // ["holder_dispersion", "lp_residual", "floor_shape"]
+n.unknown;         // ["dev_wallet_state", "social_afterglow"]
+n.missing;         // canonical axes the payload did not contain at all
+n.weightCoverage;  // 0.7 -- how much of the weight was observable
+n.contributions;   // per-axis contribution after re-normalisation
+```
+
+If not one axis is observable, `score` is `null`. It is never `0`.
+
