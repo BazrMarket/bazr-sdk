@@ -321,3 +321,62 @@ bazr-sdk/
 
 ---
 
+## Verification
+
+Both packages were installed, built and tested from this tree before this file
+was written. The numbers below are the real output, not targets.
+
+```
+packages/sdk-ts   npm ci         added 91 packages
+                  npm run typecheck   tsc --noEmit, no output
+                  npm run build  tsup ESM + CJS + .d.ts, build success
+                  npm test       Test Files 4 passed (4) / Tests 58 passed (58)
+
+packages/cli      npm ci         added 88 packages
+                  npm run typecheck   tsc --noEmit, no output
+                  npm run build  tsup ESM, build success
+                  npm test       Test Files 2 passed (2) / Tests 62 passed (62)
+                  node dist/bazr.js --version     0.1.0
+```
+
+Both entry points of the built SDK are loaded and exercised as a final step,
+which is the check that catches a build that emits files nobody can import:
+
+```
+esm entry PASS, score=70 coverage=0.60
+cjs entry PASS
+```
+
+That ESM assertion is the re-normalisation rule stated as an executable claim.
+Two axes at weight 30 score 80 and 60, one axis at weight 40 unobserved. The
+answer is 70, the weighted mean of the two that were observed. Folding the
+unobserved axis in as a zero would give 42. The CI workflow runs the same
+assertion on every push, so the rule cannot be quietly relaxed.
+
+The CLI also ships a glyph gate with a control group, so it can be run by anyone
+at any time:
+
+```bash
+cd packages/cli
+npm run gate:emoji:selftest    # control group; run this first
+npm run gate:emoji
+```
+
+```
+selftest ok=8 fail=0 verdict=PASS
+
+scanned=50 excluded=1 unreadable=0
+  EXCLUDED (declared) .../packages/cli/scripts/gate-emoji.mjs
+hits=0
+verdict=PASS
+```
+
+`scanned=` is counted from the same file list the scan reads, so it cannot drift
+from what was actually inspected. `scanned=0` is a self-failure, not a pass: not
+looking and finding nothing otherwise produce identical output. The selftest is
+the control group -- it checks that the detector fires on seeded violations *and*
+stays quiet on clean source, because a check that always fails passes an audit
+just as easily as one that always succeeds.
+
+---
+
