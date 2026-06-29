@@ -134,3 +134,20 @@ not a statement that a token is safe.
 point for your own reading of the on-chain data, and the axis breakdown exists so
 you can go check the underlying facts yourself rather than trust the number.
 
+### Every axis can be wrong
+
+Each axis is an inference over public data, and each one has a known way to fail.
+These are not hypothetical:
+
+| Axis | How it can be wrong |
+| --- | --- |
+| `holder_dispersion` | A centralised exchange hot wallet, a bridge or a custody contract is one address holding many people's balances. Counted as a whale, it reads as concentration that is not there. The reverse also happens: one person splitting across many wallets reads as healthy dispersion. |
+| `lp_residual` | A locker contract, a vesting program or a protocol-owned position may not be recognised as locked liquidity, so real depth reads as absent. An unfamiliar pool type can be missed entirely, and the token then looks thinner than it is. |
+| `floor_shape` | Wash trading inflates trade continuity and makes a floor look supported. Thin books make a single trade look like a trend. A quiet token and a dead token can produce similar shapes. |
+| `social_afterglow` | Bot amplification, purchased engagement and coordinated posting are cheap. A token can look socially alive with no humans in it. A genuinely active community on a platform that is not indexed reads as silence. |
+| `dev_wallet_state` | Deployer wallets get rotated, funds get moved through intermediaries, and redistribution is easy to hide. A tracked deployer wallet going quiet does not mean the deployer left. |
+
+Tags carry the same caveat. A tag is an observation with a confidence level, not
+a verdict, and a missing tag means nothing was observed rather than that nothing
+happened.
+
