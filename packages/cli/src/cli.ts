@@ -53,3 +53,66 @@ const STALL_SORTS: readonly StallSort[] = ["record", "recent", "listings"];
 const DEFAULT_TIMEOUT_MS = 10_000;
 const SCORING_TIMEOUT_MS = 90_000;
 const SCORING_COMMANDS: ReadonlySet<string> = new Set(["relic", "tags"]);
+
+function defaultTimeoutMs(command: string | undefined): number {
+  return command !== undefined && SCORING_COMMANDS.has(command)
+    ? SCORING_TIMEOUT_MS
+    : DEFAULT_TIMEOUT_MS;
+}
+
+/** How long the API may stay silent before the CLI says it is still waiting. */
+const QUIET_BEFORE_NOTICE_MS = 5_000;
+
+function formatDelay(ms: number): string {
+  return ms >= 1_000 ? `${Math.round(ms / 100) / 10}s` : `${Math.round(ms)}ms`;
+}
+
+/**
+ * Scoring a cold mint takes tens of seconds. Printing nothing for that long is
+ * indistinguishable from being hung -- which is precisely how a silent failure
+ * in the retry path went unnoticed. Progress goes to stderr, so `--json` on
+ * stdout stays machine-readable.
+ */
+function startWaitNotice(
+  stderr: Writer,
+  theme: Theme,
+  command: string,
+  timeoutMs: number,
+): () => void {
+  if (timeoutMs <= QUIET_BEFORE_NOTICE_MS) return () => undefined;
+  const timer = setTimeout(() => {
+    stderr(
+      theme.dim(
+        `   still waiting on the API -- "${command}" allows ` +
+          `${Math.round(timeoutMs / 1000)}s per attempt`,
+      ),
+    );
+  }, QUIET_BEFORE_NOTICE_MS);
+  return () => clearTimeout(timer);
+}
+
+/**
+ * Retries were invisible: the CLI sat quiet for the length of every attempt
+ * and then printed one error at the end. Announcing each wait is what tells a
+ * slow run apart from a stuck one.
+ */
+function retryNotice(stderr: Writer, theme: Theme): (info: RetryInfo) => void {
+  return (info) =>
+    stderr(
+      theme.dim(
+        `   attempt ${info.attempt} failed (${info.reason});` +
+          ` retrying in ${formatDelay(info.delayMs)}`,
+      ),
+    );
+}
+
+export interface RunCliOptions {
+  argv: readonly string[];
+  stdout: Writer;
+  stderr: Writer;
+  env?: Record<string, string | undefined>;
+  isTTY?: boolean;
+  columns?: number;
+  /** Injectable so tests can drive the CLI without touching the network layer. */
+  createClient?: (baseUrl: string, opts: { timeoutMs: number; retries: number }) => BazrClient;
+}
