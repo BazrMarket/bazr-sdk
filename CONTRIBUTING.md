@@ -219,3 +219,21 @@ a pass.
 
 ---
 
+## Language and claims
+
+- **Everything in this repository is written in English.** Code, comments,
+  documentation, commit messages and pull request text.
+- **No marketing language about price.** The words `guaranteed`, `100x`, `moon`,
+  `gem` and phrases like "next pump" do not belong in a repository whose product
+  is a survival measurement. A relic score is an observational summary, not a
+  prediction and not financial advice.
+- **Do not describe something as working when it does not.** If a command,
+  package or deployment does not exist, say so plainly. The README says in its
+  own words that nothing here is on npm and that the Anchor program is devnet
+  only, because a README that oversells is found in one minute and costs more
+  than the missing feature would have.
+- **Failures are displayed at the same size as successes.** That applies to stall
+  records, to rug and bundle observations, and to this documentation.
+
+---
+
