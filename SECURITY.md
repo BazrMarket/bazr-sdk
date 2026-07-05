@@ -151,3 +151,21 @@ Tags carry the same caveat. A tag is an observation with a confidence level, not
 a verdict, and a missing tag means nothing was observed rather than that nothing
 happened.
 
+### Missing data and bad data are different events
+
+This is a deliberate design decision and it is visible in the code
+([`packages/sdk-ts/src/score.ts`](packages/sdk-ts/src/score.ts)).
+
+An axis that could not be observed is marked `status: "unknown"`, is **removed
+from the weighting**, and the remaining weights are re-normalised over the axes
+that were observed. It is never folded in as a zero.
+
+Folding an unobserved axis to zero would mean that a token whose data lookup
+failed renders identically to a token that was measured and found dead. Those are
+different claims and the number must not collapse them into one.
+
+The consequence is that a score always comes with a coverage figure. A score
+computed over two of five axes is not the same object as a score computed over
+five of five, even when the two numbers match, and the interface says which one
+you are looking at.
+
