@@ -132,3 +132,30 @@ n.contributions;   // per-axis contribution after re-normalisation
 
 If not one axis is observable, `score` is `null`. It is never `0`.
 
+## Errors
+
+Every failure throws. Nothing resolves to an empty object.
+
+| Class | When |
+| --- | --- |
+| `BazrApiError` | The server answered 4xx/5xx. Carries `status`, `code`, `detail`. |
+| `BazrRateLimitError` | 429. Carries `retryAfterMs` as parsed from the header. |
+| `BazrNetworkError` | The request never reached the server. |
+| `BazrTimeoutError` | The attempt outlived `timeoutMs`. |
+| `BazrValidationError` | A 2xx body did not match the contract. Carries `issues`. |
+| `BazrConfigError` | Bad client configuration or arguments. |
+
+`describeError(err)` returns one line fit for a terminal, and `errorHints(err)`
+returns follow-up lines. The `bazr` CLI uses both instead of printing a stack.
+
+```ts
+import { describeError, errorHints } from "@bazr/sdk";
+
+try {
+  await bazr.getRelic(mint);
+} catch (err) {
+  console.error(describeError(err));
+  for (const hint of errorHints(err)) console.error(`  ${hint}`);
+}
+```
+
