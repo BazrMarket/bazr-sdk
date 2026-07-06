@@ -237,3 +237,25 @@ a pass.
 
 ---
 
+## Pull requests
+
+One change per pull request. Describe what you changed and how you verified it,
+including the commands you ran and their output. "It should work" is not a
+verification.
+
+Before you open it:
+
+- [ ] `npm install && npm run typecheck && npm run build && npm test` passes in
+      every package you touched
+- [ ] Any test you added passes locally and makes no live network calls
+- [ ] `npm run gate:emoji:selftest` then `npm run gate:emoji` both print
+      `verdict=PASS`, and `scanned` is not `0`
+- [ ] Zero emoji, in every file you touched and in the pull request text itself
+- [ ] Zero commit messages beginning with a token and a colon
+- [ ] Zero secrets: no API keys, no RPC URLs carrying a key, no private keys, no
+      `.env` file, no real wallet in a fixture
+- [ ] The relic specification in the main repository is updated in the same change
+      set, and linked, if you changed how a score or a verdict is produced
+- [ ] English only
+- [ ] No new claim in the documentation that the code does not support
+
