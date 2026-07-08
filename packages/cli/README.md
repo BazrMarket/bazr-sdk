@@ -56,3 +56,21 @@ cd bazr-sdk/packages/cli && npm link
 bazr --help
 ```
 
+### When a release does happen: `@bazr/sdk` first, then `bazr-cli`
+
+`bazr-cli` depends on `@bazr/sdk` by registry range (`^0.1.0`), not by path.
+Publishing the CLI first uploads a package nobody can install, and the error
+names the SDK rather than the CLI, so it is easy to go looking in the wrong
+place:
+
+```
+npm error code E404
+npm error 404 Not Found - GET https://registry.npmjs.org/@bazr%2fsdk - Not found
+npm error 404
+npm error 404  '@bazr/sdk@^0.1.0' is not in this registry.
+```
+
+So: publish `packages/sdk-ts` first, then `packages/cli`. `@bazr/sdk` is a
+scoped package and therefore private by default -- the `publishConfig.access`
+of `public` already in its manifest is what makes step one work at all.
+
