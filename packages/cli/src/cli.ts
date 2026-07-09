@@ -116,3 +116,140 @@ export interface RunCliOptions {
   /** Injectable so tests can drive the CLI without touching the network layer. */
   createClient?: (baseUrl: string, opts: { timeoutMs: number; retries: number }) => BazrClient;
 }
+
+export async function runCli(options: RunCliOptions): Promise<number> {
+  const { stdout, stderr } = options;
+  const env = options.env ?? {};
+
+  let parsed;
+  try {
+    parsed = parseArgs(options.argv, FLAG_SPEC);
+  } catch (err) {
+    return usageFailure(stderr, err instanceof Error ? err.message : String(err));
+  }
+
+  const { positionals, flags } = parsed;
+  const colorForce = flagBool(flags, "no-color")
+    ? false
+    : flagBool(flags, "color")
+      ? true
+      : undefined;
+  const theme = createTheme({ isTTY: options.isTTY ?? false, env, force: colorForce });
+
+  if (flagBool(flags, "version")) {
+    stdout(CLI_VERSION);
+    return 0;
+  }
+  if (flagBool(flags, "help") || positionals.length === 0) {
+    stdout(HELP);
+    return positionals.length === 0 && !flagBool(flags, "help") ? 2 : 0;
+  }
+
+  const [command, ...rest] = positionals;
+
+  const baseUrl = flagString(flags, "api") ?? env.BAZR_API ?? DEFAULT_BASE_URL;
+  const timeoutMs = flagNumber(flags, "timeout") ?? defaultTimeoutMs(command);
+  const retries = flagNumber(flags, "retries") ?? 3;
+
+  let client: BazrClient;
+  try {
+    client = options.createClient
+      ? options.createClient(baseUrl, { timeoutMs, retries })
+      : createBazrClient({
+          baseUrl,
+          timeoutMs,
+          retry: {
+            maxAttempts: Math.max(1, Math.round(retries)),
+            onRetry: retryNotice(stderr, theme),
+          },
+          userAgent: `bazr-cli/${CLI_VERSION}`,
+        });
+  } catch (err) {
+    return failure(stderr, theme, err, flagBool(flags, "debug"));
+  }
+
+  const ctx: CliContext = {
+    out: stdout,
+    err: stderr,
+    theme,
+    width: resolveWidth(options.columns),
+    json: flagBool(flags, "json"),
+    client,
+    baseUrl,
+    debug: flagBool(flags, "debug"),
+  };
+
+  const stopWaitNotice = startWaitNotice(stderr, theme, command ?? "", timeoutMs);
+
+  try {
+    switch (command) {
+      case "relic": {
+        const mint = requireArg(rest[0], "bazr relic <mint>");
+        return await relicCommand(ctx, mint, { refresh: flagBool(flags, "refresh") });
+      }
+      case "tags": {
+        const mint = requireArg(rest[0], "bazr tags <mint>");
+        return await tagsCommand(ctx, mint);
+      }
+      case "stalls": {
+        const sort = flagString(flags, "sort");
+        if (sort !== undefined && !STALL_SORTS.includes(sort as StallSort)) {
+          throw new UsageError(`--sort must be one of ${STALL_SORTS.join(", ")} (got "${sort}")`);
+        }
+        return await stallsCommand(ctx, {
+          sort: sort as StallSort | undefined,
+          limit: flagNumber(flags, "limit"),
+          cursor: flagString(flags, "cursor"),
+        });
+      }
+      case "stall": {
+        const owner = requireArg(rest[0], "bazr stall <owner>");
+        return await stallCommand(ctx, owner);
+      }
+      case "crate": {
+        const sub = rest[0];
+        if (sub === "list" || sub === undefined) {
+          return await crateListCommand(ctx, {
+            limit: flagNumber(flags, "limit"),
+            cursor: flagString(flags, "cursor"),
+          });
+        }
+        if (sub === "show") {
+          const id = requireArg(rest[1], "bazr crate show <id>");
+          return await crateShowCommand(ctx, id);
+        }
+        throw new UsageError(`Unknown crate subcommand "${sub}". Try: bazr crate list`);
+      }
+      case "haggle": {
+        const inputMint = requireFlag(flagString(flags, "in"), "--in <mint>");
+        const outputMint = requireFlag(flagString(flags, "out"), "--out <mint>");
+        const amount = requireFlag(flagString(flags, "amount"), "--amount <raw base units>");
+        if (!/^\d+$/.test(amount)) {
+          throw new UsageError(`--amount must be a whole number of base units (got "${amount}")`);
+        }
+        return await haggleCommand(ctx, {
+          inputMint,
+          outputMint,
+          amount,
+          slippageBps: flagNumber(flags, "slippage-bps"),
+        });
+      }
+      case "stats":
+        return await statsCommand(ctx);
+      case "health":
+        return await healthCommand(ctx);
+      case "help":
+        stdout(HELP);
+        return 0;
+      default:
+        throw new UsageError(`Unknown command "${command}"`);
+    }
+  } catch (err) {
+    if (err instanceof UsageError) return usageFailure(stderr, err.message);
+    return failure(stderr, theme, err, ctx.debug);
+  } finally {
+    // Must run on every path. A stray pending timer would otherwise keep the
+    // process alive past the last line of output.
+    stopWaitNotice();
+  }
+}
