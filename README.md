@@ -380,3 +380,19 @@ just as easily as one that always succeeds.
 
 ---
 
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. The parts
+people trip on:
+
+- Commit messages are plain English imperative sentences. No `feat:`, no `fix:`,
+  no prefix-and-colon of any kind.
+- No emoji and no glyph status markers anywhere, including pull request text.
+  Write `PASS` and `FAIL`, or `O` and `X`.
+- A change to how a score is produced must change the relic specification in the
+  main repository in the same change set. The specification is the published
+  claim; the code is the implementation of it.
+- No new claim in the documentation that the code does not support.
+
+---
+
