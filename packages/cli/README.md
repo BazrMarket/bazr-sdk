@@ -74,3 +74,26 @@ So: publish `packages/sdk-ts` first, then `packages/cli`. `@bazr/sdk` is a
 scoped package and therefore private by default -- the `publishConfig.access`
 of `public` already in its manifest is what makes step one work at all.
 
+## Commands
+
+| Command | What it prints |
+| --- | --- |
+| `bazr relic <mint>` | Relic tag, five-axis breakdown, labels, sources |
+| `bazr tags <mint>` | Labels only |
+| `bazr stalls` | Stall ranking with wins and losses side by side |
+| `bazr stall <owner>` | One stall and everything on its table |
+| `bazr crate list` | Crates currently assembled |
+| `bazr crate show <id>` | One crate and its components |
+| `bazr haggle` | Route simulation over existing liquidity |
+| `bazr stats` | Counters the service reports |
+| `bazr health` | Whether the service answers |
+
+```bash
+bazr relic So11111111111111111111111111111111111111112
+bazr relic <mint> --refresh
+bazr stalls --sort record --limit 20
+bazr crate show 3
+bazr haggle --in <mint> --out <mint> --amount 1000000 --slippage-bps 100
+bazr tags <mint> --json
+```
+
