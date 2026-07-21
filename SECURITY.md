@@ -169,3 +169,10 @@ computed over two of five axes is not the same object as a score computed over
 five of five, even when the two numbers match, and the interface says which one
 you are looking at.
 
+### Low coverage produces `unclear`, not a low score
+
+When coverage is too low to support a claim, the verdict is `unclear`. It is not
+downgraded to `dead`, and it is not padded up to look complete. `unclear` is a
+real answer that means the data was not there, and it appears alongside `dormant`
+and `dead` in the verdict set for exactly that reason.
+
