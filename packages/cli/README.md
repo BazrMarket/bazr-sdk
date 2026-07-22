@@ -97,3 +97,27 @@ bazr haggle --in <mint> --out <mint> --amount 1000000 --slippage-bps 100
 bazr tags <mint> --json
 ```
 
+## Options
+
+| Option | Meaning |
+| --- | --- |
+| `--api <url>` | API base URL. Defaults to `$BAZR_API`, then `http://localhost:8030` |
+| `--json`, `-j` | Print the validated API response as JSON |
+| `--timeout <ms>` | Per-attempt timeout. Default 90000 for `relic` and `tags`, 10000 for everything else |
+| `--retries <n>` | Total attempts including the first (default 3) |
+| `--color` / `--no-color` | Force colour on or off. Auto-detected otherwise |
+| `--debug` | Print the stack trace when something fails |
+
+Colour is switched off automatically when stdout is not a TTY, when `NO_COLOR`
+is set, and when `TERM=dumb`. Everything the CLI prints reads correctly with
+colour stripped: there are no emoji and no glyph-only status markers, only
+words and `O` / `X`.
+
+The timeout default is per endpoint because the endpoints are not comparable.
+`/health` and `/stall` answer in well under a second. Scoring a mint the
+service has not seen walks its holder pages and asks several upstreams first --
+measured against production, `/relic/{mint}` took 28.8s cold and
+`/relic/{mint}/tags` 47.7s. A slow request says so on stderr rather than
+sitting silent, and so does every retry, so a slow run can be told apart from
+a stuck one. Both notices go to stderr; `--json` on stdout stays clean.
+
