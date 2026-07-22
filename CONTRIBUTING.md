@@ -259,3 +259,14 @@ Before you open it:
 - [ ] English only
 - [ ] No new claim in the documentation that the code does not support
 
+### Security issues do not go here
+
+Do not open a public pull request or issue for a vulnerability. Report it
+privately through GitHub Security Advisories. See [SECURITY.md](SECURITY.md).
+
+A false positive in the scoring model is also a security report, and it belongs
+in that same private channel with a full mint address and the observed axis
+breakdown.
+
+---
+
