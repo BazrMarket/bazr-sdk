@@ -253,3 +253,83 @@ export async function runCli(options: RunCliOptions): Promise<number> {
     stopWaitNotice();
   }
 }
+
+async function statsCommand(ctx: CliContext): Promise<number> {
+  const stats = await ctx.client.getStats();
+  if (ctx.json) {
+    printJson(ctx, stats);
+    return 0;
+  }
+  const { theme } = ctx;
+  ctx.out(theme.heading("MARKET"));
+  ctx.out(`      relics scored        ${formatCount(stats.relics_scored)}`);
+  ctx.out(`      stalls open          ${formatCount(stats.stalls)}`);
+  ctx.out(`      crates live          ${formatCount(stats.crates_live)}`);
+  ctx.out(`      aftermarket volume   ${formatUsd(stats.aftermarket_volume_usd)}`);
+  ctx.out(`      data cluster         ${stats.data_cluster ?? "unknown"}`);
+  /*
+    Two chains, printed as two lines, never merged into one "cluster". The
+    scoring RPC reads mainnet because that is where graduated memes live; the
+    program is deployed somewhere else entirely.
+
+    The line is dropped outright when nothing is deployed, rather than falling
+    back to "unknown" the way the fields above do. Those fields exist and are
+    merely unread; this one is absent from the response because there is no
+    deployment to name, and calling that "unknown" would file "not deployed"
+    and "we did not get a value" under the same word.
+  */
+  if (stats.program_cluster) {
+    ctx.out(`      program cluster      ${stats.program_cluster}`);
+    // The Anchor version describes a deployment, so it goes where the
+    // deployment goes. Printed on its own it implies a program is out there.
+    ctx.out(`      anchor               ${stats.anchor_version ?? "unknown"}`);
+  }
+  ctx.out("");
+  note(ctx, "Counters the service actually holds. Missing values print as --.");
+  return 0;
+}
+
+async function healthCommand(ctx: CliContext): Promise<number> {
+  const health = await ctx.client.getHealth();
+  if (ctx.json) {
+    printJson(ctx, health);
+    return 0;
+  }
+  const ok = health.status.toLowerCase() === "ok";
+  ctx.out(`${ok ? ctx.theme.good("PASS") : ctx.theme.bad("FAIL")}  ${ctx.baseUrl}`);
+  ctx.out(ctx.theme.dim(`      status ${health.status}, version ${health.version ?? "unknown"}`));
+  return ok ? 0 : 1;
+}
+
+function requireArg(value: string | undefined, usage: string): string {
+  if (value === undefined || value.trim() === "") throw new UsageError(`Missing argument: ${usage}`);
+  return value;
+}
+
+function requireFlag(value: string | undefined, usage: string): string {
+  if (value === undefined || value.trim() === "") throw new UsageError(`Missing option: ${usage}`);
+  return value;
+}
+
+function usageFailure(stderr: Writer, message: string): number {
+  stderr(`X  ${message}`);
+  stderr('   Run "bazr --help" for usage.');
+  return 2;
+}
+
+/**
+ * A dead backend must produce a sentence, not a stack trace. The stack is
+ * available behind --debug for whoever actually wants it.
+ */
+function failure(
+  stderr: Writer,
+  theme: { bad: (s: string) => string; dim: (s: string) => string },
+  err: unknown,
+  debug: boolean,
+): number {
+  stderr(theme.bad(`X  ${describeError(err)}`));
+  for (const hint of errorHints(err)) stderr(theme.dim(`   ${hint}`));
+  if (debug && err instanceof Error && err.stack) stderr(theme.dim(err.stack));
+  else if (!debug) stderr(theme.dim("   Run again with --debug for the stack trace."));
+  return 1;
+}
