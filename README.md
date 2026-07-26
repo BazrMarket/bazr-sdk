@@ -396,3 +396,14 @@ people trip on:
 
 ---
 
+## Security
+
+Report vulnerabilities privately through GitHub Security Advisories, not through
+a public issue. See [SECURITY.md](SECURITY.md) for the reporting path, the scope,
+and a per-axis account of how each part of the score can be wrong.
+
+A false positive in the scoring model is treated as a security report and belongs
+in the same private channel.
+
+---
+
