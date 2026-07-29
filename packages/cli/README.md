@@ -121,3 +121,20 @@ measured against production, `/relic/{mint}` took 28.8s cold and
 sitting silent, and so does every retry, so a slow run can be told apart from
 a stuck one. Both notices go to stderr; `--json` on stdout stays clean.
 
+## What the output promises
+
+- **An axis that could not be observed prints `--` and `no data`, never `0`.**
+  It is excluded from the weighting and the remaining weights are re-normalised.
+  The footer states how many axes were observed and how much of the weight that
+  covered.
+- **The contribution column adds up.** The sum is printed next to the score the
+  API reported, so a mismatch is visible rather than hidden.
+- **Stall records print wins and losses as separate raw counts.** There is no
+  win-rate column: a rate alone lets a bad record hide behind its denominator.
+- **Labels are printed as reported, including low-confidence alerts.** Rug and
+  bundle traces are not filtered out.
+- **`haggle` is a simulation over existing liquidity.** BAZR runs no order book
+  and no AMM of its own; the quote names the router it used. High price impact
+  gets its own warning block, not a footnote.
+- **The API disclaimer is printed on every command.**
+
