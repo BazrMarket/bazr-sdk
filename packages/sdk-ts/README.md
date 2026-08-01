@@ -159,3 +159,17 @@ try {
 }
 ```
 
+## Contract
+
+[`docs/api-contract.md`](https://github.com/BazrMarket/bazr/blob/main/docs/api-contract.md)
+in the main BAZR repository is the source of truth for the wire
+format. The schemas in `src/schemas.ts` mirror it, and the types are inferred
+from the schemas so the two cannot drift.
+
+Two deliberate leniencies are documented rather than hidden:
+
+- `GET /crate` is accepted as either a bare array or a `{ crates, next_cursor }`
+  envelope, and normalised to the envelope shape.
+- If a relic response omits `disclaimer`, the contract default sentence is
+  substituted so every rendering surface has it.
+
