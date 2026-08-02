@@ -138,3 +138,30 @@ a stuck one. Both notices go to stderr; `--json` on stdout stays clean.
   gets its own warning block, not a footnote.
 - **The API disclaimer is printed on every command.**
 
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Success |
+| `1` | The request failed (network, HTTP error, contract violation) |
+| `2` | Usage error (unknown command or option, missing argument) |
+| `70` | bazr stopped before producing a result -- a bug in bazr itself |
+
+`70` exists because the worst failure a CLI can have is one that reports
+success. If any promise in the command never settles, Node empties its event
+loop and leaves with no output and a status no script would read as a failure.
+That shipped once: an awaited backoff timer had been told not to hold the
+process open, and `bazr relic` died mid-retry on every cache miss while exiting
+as though nothing were wrong. The timer is fixed and covered by tests that run
+this binary as a real process; `70` is the guard that makes any future
+recurrence loud instead of silent.
+
+Failures print one sentence plus hints, not a stack trace. Add `--debug` when
+you want the stack.
+
+```
+X  Cannot reach http://localhost:8030/relic/<mint>: fetch failed (ECONNREFUSED)
+   Is the BAZR service running and reachable?
+   Point the client somewhere else with --api <url> or the BAZR_API env var.
+```
+
