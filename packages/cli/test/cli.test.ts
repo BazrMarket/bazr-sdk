@@ -71,3 +71,96 @@ describe("usage surface", () => {
     expect(r.err).toContain("--sort must be one of record, recent, listings");
   });
 });
+
+describe("bazr relic", () => {
+  it("renders the tag, the five-axis breakdown and the disclaimer", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+    const r = await run(["relic", RELIC_MINT, "--api", server.baseUrl]);
+
+    expect(r.code).toBe(0);
+    expect(r.out).toContain("RELIC TAG");
+    expect(r.out).toContain(RELIC_MINT);
+    expect(r.out).toContain("AXIS BREAKDOWN");
+    for (const label of [
+      "Holder dispersion",
+      "LP residual",
+      "Dev wallet state",
+      "Floor shape",
+      "Social afterglow",
+    ]) {
+      expect(r.out).toContain(label);
+    }
+    expect(r.flat).toContain("Survival-signal summary, not a prediction");
+  });
+
+  it("prints unknown axes as -- and no data, never as 0", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+    const r = await run(["relic", RELIC_MINT, "--api", server.baseUrl]);
+
+    const devLine = r.stdout.find((l) => l.includes("Dev wallet state")) ?? "";
+    const socialLine = r.stdout.find((l) => l.includes("Social afterglow")) ?? "";
+
+    expect(devLine).toContain("--");
+    expect(devLine).toContain("no data");
+    expect(devLine).toContain("excluded");
+    expect(devLine).not.toMatch(/\s0(\s|$)/);
+    expect(socialLine).toContain("no data");
+    expect(r.flat).toContain("not counted as zero");
+  });
+
+  it("states how many axes were observed", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+    const r = await run(["relic", RELIC_MINT, "--api", server.baseUrl]);
+
+    expect(r.flat).toContain("3 of 5 axes observed");
+    expect(r.flat).toContain("75% of the weight");
+  });
+
+  it("shows the contribution sum next to the score the API reported", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+    const r = await run(["relic", RELIC_MINT, "--api", server.baseUrl]);
+
+    expect(r.flat).toContain("Contributions sum to 46.9");
+    expect(r.flat).toContain("the API reported 47");
+  });
+
+  it("--refresh reaches the server with ?refresh=true", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+    await run(["relic", RELIC_MINT, "--refresh", "--api", server.baseUrl]);
+
+    expect(server.requests[0]?.query.get("refresh")).toBe("true");
+  });
+
+  it("--json emits parseable JSON and nothing else", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+    const r = await run(["relic", RELIC_MINT, "--json", "--api", server.baseUrl]);
+
+    const parsed = JSON.parse(r.out) as { mint: string; verdict: string };
+    expect(parsed.mint).toBe(RELIC_MINT);
+    expect(parsed.verdict).toBe("unclear");
+  });
+
+  it("reads the base URL from BAZR_API when --api is absent", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+    const r = await run(["relic", RELIC_MINT], { env: { BAZR_API: server.baseUrl } });
+
+    expect(r.code).toBe(0);
+    expect(server.requests).toHaveLength(1);
+  });
+
+  it("renders a score of null as -- rather than 0", async () => {
+    const axes = (relicPayload().axes as Array<Record<string, unknown>>).map((a) => ({
+      ...a,
+      score: null,
+      status: "unknown",
+    }));
+    server = await startMockServer(() => ({
+      body: relicPayload({ score: null, axes, verdict: "unclear" }),
+    }));
+    const r = await run(["relic", RELIC_MINT, "--api", server.baseUrl]);
+
+    const scoreLine = r.stdout.find((l) => l.includes("SCORE")) ?? "";
+    expect(scoreLine).toContain("-- / 100");
+    expect(r.flat).toContain("0 of 5 axes observed");
+  });
+});
