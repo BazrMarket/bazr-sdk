@@ -164,3 +164,48 @@ describe("bazr relic", () => {
     expect(r.flat).toContain("0 of 5 axes observed");
   });
 });
+
+describe("bazr stalls", () => {
+  it("shows wins and losses as separate raw columns and no win rate", async () => {
+    server = await startMockServer(() => ({ body: stallListPayload() }));
+    const r = await run(["stalls", "--sort", "record", "--api", server.baseUrl]);
+
+    expect(r.code).toBe(0);
+    expect(r.out).toContain("WINS");
+    expect(r.out).toContain("LOSSES");
+    expect(r.out).toContain("PENDING");
+    expect(r.flat).toContain("totals: 10 wins, 16 losses, 4 pending");
+    expect(r.flat).toContain("No win-rate column");
+    expect(r.out.toLowerCase()).not.toContain("win rate");
+    expect(r.out.toLowerCase()).not.toContain("win_rate");
+  });
+
+  it("gives the WINS and LOSSES columns identical widths", async () => {
+    server = await startMockServer(() => ({ body: stallListPayload() }));
+    const r = await run(["stalls", "--api", server.baseUrl]);
+
+    const header = stripAnsi(r.stdout.find((l) => l.includes("WINS")) ?? "");
+    const winsAt = header.indexOf("WINS");
+    const lossesAt = header.indexOf("LOSSES");
+    expect(winsAt).toBeGreaterThan(-1);
+    expect(lossesAt).toBeGreaterThan(winsAt);
+    // Columns are laid out left to right with a fixed two-space gutter.
+    expect(header.slice(winsAt + "WINS".length, lossesAt)).toBe("  ");
+  });
+
+  it("marks a slashed stall in words", async () => {
+    server = await startMockServer(() => ({ body: stallListPayload() }));
+    const r = await run(["stalls", "--api", server.baseUrl]);
+
+    expect(r.out).toContain("SLASHED");
+    expect(r.out).toContain("YES");
+  });
+
+  it("handles an empty ranking without pretending it has data", async () => {
+    server = await startMockServer(() => ({ body: { stalls: [], next_cursor: null } }));
+    const r = await run(["stalls", "--api", server.baseUrl]);
+
+    expect(r.code).toBe(0);
+    expect(r.flat).toContain("no stalls open yet");
+  });
+});
