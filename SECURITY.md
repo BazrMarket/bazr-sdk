@@ -176,3 +176,24 @@ downgraded to `dead`, and it is not padded up to look complete. `unclear` is a
 real answer that means the data was not there, and it appears alongside `dormant`
 and `dead` in the verdict set for exactly that reason.
 
+### False positives are a security report
+
+If you find a case where the score, a verdict or a tag is wrong in a way that
+would mislead someone, report it through the same advisory link above. That is in
+scope, and it is treated as a real defect rather than as feedback.
+
+A false positive report is actionable when it includes:
+
+- The mint address, in full. Do not abbreviate it.
+- The score, verdict and axis breakdown that was returned, including the `status`
+  of each axis and the coverage figure. `bazr relic <mint> --json` prints all of
+  it.
+- The observation you believe is correct, and how you established it. A block
+  explorer link, a transaction signature or a contract address is enough.
+- Roughly when you observed it, since the underlying data moves.
+
+Scoring bugs that can be arranged by an attacker, rather than occurring by
+chance, are treated as higher severity than the same bug occurring naturally.
+
+---
+
