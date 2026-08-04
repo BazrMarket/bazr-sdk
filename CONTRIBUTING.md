@@ -270,3 +270,27 @@ breakdown.
 
 ---
 
+## Publishing
+
+Neither package is on the npm registry yet, so `npm install @bazr/sdk` and
+`npm install -g bazr-cli` currently fail with `E404`. Build from source instead;
+the README has the commands.
+
+When a release does happen, the order is fixed: `@bazr/sdk` first, then
+`bazr-cli`. The CLI depends on the SDK by registry range (`^0.1.0`), not by path,
+so publishing the CLI first uploads a package nobody can install, and the error
+names the SDK rather than the CLI, which sends people looking in the wrong place:
+
+```
+npm error code E404
+npm error 404 Not Found - GET https://registry.npmjs.org/@bazr%2fsdk - Not found
+npm error 404
+npm error 404  '@bazr/sdk@^0.1.0' is not in this registry.
+```
+
+`@bazr/sdk` is a scoped package and therefore private by default. The
+`publishConfig.access` of `public` already in its manifest is what makes step one
+work at all.
+
+---
+
