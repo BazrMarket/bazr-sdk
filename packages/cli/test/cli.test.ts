@@ -209,3 +209,31 @@ describe("bazr stalls", () => {
     expect(r.flat).toContain("no stalls open yet");
   });
 });
+
+describe("bazr crate", () => {
+  it("crate list renders the table", async () => {
+    server = await startMockServer(() => ({ body: { crates: [cratePayload()], next_cursor: null } }));
+    const r = await run(["crate", "list", "--api", server.baseUrl]);
+
+    expect(r.code).toBe(0);
+    expect(r.out).toContain("CRATES");
+    expect(r.out).toContain("Q4 2025 survivors");
+  });
+
+  it("crate show renders components and flags unscored ones as --", async () => {
+    server = await startMockServer(() => ({ body: cratePayload() }));
+    const r = await run(["crate", "show", "3", "--api", server.baseUrl]);
+
+    expect(r.code).toBe(0);
+    expect(server.requests[0]?.path).toBe("/crate/3");
+    expect(r.out).toContain("COMPONENTS");
+    expect(r.flat).toContain("weights sum to 100.00%");
+    expect(r.flat).toContain("shown as -- not as 0");
+  });
+
+  it("crate show without an id exits 2", async () => {
+    const r = await run(["crate", "show"]);
+    expect(r.code).toBe(2);
+    expect(r.err).toContain("bazr crate show <id>");
+  });
+});
