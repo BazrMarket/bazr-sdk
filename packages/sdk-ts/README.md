@@ -173,3 +173,6 @@ Two deliberate leniencies are documented rather than hidden:
 - If a relic response omits `disclaimer`, the contract default sentence is
   substituted so every rendering surface has it.
 
+## License
+
+MIT
