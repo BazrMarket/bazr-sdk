@@ -237,3 +237,61 @@ describe("bazr crate", () => {
     expect(r.err).toContain("bazr crate show <id>");
   });
 });
+
+describe("bazr haggle", () => {
+  it("prints a prominent warning block when price impact is high", async () => {
+    server = await startMockServer(() => ({ body: haggleQuotePayload() }));
+    const r = await run([
+      "haggle", "--in", RELIC_MINT, "--out", "MintB111", "--amount", "1000000",
+      "--slippage-bps", "100", "--api", server.baseUrl,
+    ]);
+
+    expect(r.code).toBe(0);
+    expect(r.out).toContain("WARNING -- THIN LIQUIDITY");
+    expect(r.out).toContain("3.40%");
+    expect(r.flat).toContain("Thin liquidity: price impact above 3%.");
+    expect(r.flat).toContain("nothing has been executed");
+    expect(r.out).toContain("jupiter");
+  });
+
+  it("escalates the wording above 10% impact", async () => {
+    server = await startMockServer(() => ({
+      body: { ...haggleQuotePayload(), price_impact_bps: 1500, warning: null },
+    }));
+    const r = await run([
+      "haggle", "--in", RELIC_MINT, "--out", "MintB111", "--amount", "1000000",
+      "--api", server.baseUrl,
+    ]);
+
+    expect(r.out).toContain("WARNING -- VERY THIN LIQUIDITY");
+    expect(r.out).toContain("15.00%");
+  });
+
+  it("prints no warning block when impact is low", async () => {
+    server = await startMockServer(() => ({
+      body: { ...haggleQuotePayload(), price_impact_bps: 12, warning: null },
+    }));
+    const r = await run([
+      "haggle", "--in", RELIC_MINT, "--out", "MintB111", "--amount", "1000000",
+      "--api", server.baseUrl,
+    ]);
+
+    expect(r.out).not.toContain("WARNING");
+    expect(r.out).toContain("0.12%");
+  });
+
+  it("sends the request body the contract specifies", async () => {
+    server = await startMockServer(() => ({ body: haggleQuotePayload() }));
+    await run([
+      "haggle", "--in", RELIC_MINT, "--out", "MintB111", "--amount", "1000000",
+      "--slippage-bps", "100", "--api", server.baseUrl,
+    ]);
+
+    expect(JSON.parse(server.requests[0]?.body ?? "{}")).toEqual({
+      input_mint: RELIC_MINT,
+      output_mint: "MintB111",
+      amount: "1000000",
+      slippage_bps: 100,
+    });
+  });
+});
