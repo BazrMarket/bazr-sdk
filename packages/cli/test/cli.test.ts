@@ -295,3 +295,34 @@ describe("bazr haggle", () => {
     });
   });
 });
+
+describe("bazr tags", () => {
+  it("prints labels only, with confidence and severity", async () => {
+    server = await startMockServer(() => ({
+      body: { mint: RELIC_MINT, tags: relicPayload().tags },
+    }));
+    const r = await run(["tags", RELIC_MINT, "--api", server.baseUrl]);
+
+    expect(r.code).toBe(0);
+    expect(r.out).toContain("ALERT");
+    expect(r.out).toContain("Bundle trace");
+    expect(r.out).toContain("LP burned");
+    expect(r.out).not.toContain("AXIS BREAKDOWN");
+  });
+
+  it("keeps a low-confidence alert visible instead of hiding it", async () => {
+    server = await startMockServer(() => ({
+      body: {
+        mint: RELIC_MINT,
+        tags: [
+          { key: "rug-trace", label: "Rug trace", severity: "alert", observed: true, confidence: "low", evidence: {} },
+        ],
+      },
+    }));
+    const r = await run(["tags", RELIC_MINT, "--api", server.baseUrl]);
+
+    expect(r.out).toContain("Rug trace");
+    expect(r.out).toContain("low");
+    expect(r.flat).toContain("A low-confidence alert is still shown");
+  });
+});
