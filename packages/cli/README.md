@@ -165,3 +165,28 @@ X  Cannot reach http://localhost:8030/relic/<mint>: fetch failed (ECONNREFUSED)
    Point the client somewhere else with --api <url> or the BAZR_API env var.
 ```
 
+## Development
+
+The CLI depends on `@bazr/sdk` from the same repository. The full loop from a
+clean checkout, all of which passes:
+
+```bash
+cd packages/sdk-ts && npm install && npm run typecheck && npm run build && npm test
+cd ../cli        && npm install && npm run typecheck && npm run build && npm test
+```
+
+The committed `package-lock.json` records `@bazr/sdk` as a link to `../sdk-ts`,
+so a plain `npm install` sets it up. If that link ever needs re-establishing by
+hand, `npm run dev:link` installs `../sdk-ts` into `node_modules` without
+touching `package.json`, so the manifest keeps the registry range `^0.1.0`
+rather than a local `file:` path.
+
+`npm test` builds both packages before it runs. `test/spawned.test.ts` executes
+`dist/bazr.js` as a real child process, because that is the only place some
+failures are visible: called in-process, the CLI borrows the test runner's
+event loop, and a command that would strand a bare `node dist/bazr.js` returns
+normally. Every other suite here passed while `bazr relic` printed nothing at
+all against the live service. Testing the shipped binary against a stale
+`@bazr/sdk/dist` would reintroduce the same blind spot, which is why the build
+covers both.
+
