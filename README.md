@@ -407,3 +407,6 @@ in the same private channel.
 
 ---
 
+## License
+
+MIT. See [LICENSE](LICENSE).
