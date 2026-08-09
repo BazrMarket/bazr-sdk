@@ -294,3 +294,7 @@ work at all.
 
 ---
 
+## Licence
+
+By contributing you agree that your contribution is licensed under the MIT
+Licence, as set out in [LICENSE](LICENSE).
