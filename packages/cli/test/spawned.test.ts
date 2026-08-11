@@ -167,3 +167,49 @@ describe("bazr relic survives the retry path as a real process", () => {
     expect(r.stdout).toContain("AXIS BREAKDOWN");
   });
 });
+
+describe("what the relic tag prints, from the shipped binary", () => {
+  it("prints unknown axes as -- and no data, never as 0", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+
+    const r = await spawnBazr(["relic", RELIC_MINT, "--api", server.baseUrl]);
+
+    expectFinished(r);
+    expect(r.code).toBe(0);
+    // The fixture leaves dev_wallet_state and social_afterglow unobservable.
+    expect(r.flat).toContain("Dev wallet state -- 15% excluded no data");
+    expect(r.flat).toContain("Social afterglow -- 10% excluded no data");
+    expect(r.flat).toContain("2 of 5 axes could not be observed");
+    expect(r.flat).toContain("not counted as zero");
+  });
+
+  it("prints the disclaimer that travelled with the response", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+
+    const r = await spawnBazr(["relic", RELIC_MINT, "--api", server.baseUrl]);
+
+    expectFinished(r);
+    expect(r.stdout).toContain("Survival-signal summary, not a prediction of price or revival.");
+  });
+
+  it("shows the contribution sum next to the score the API reported", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+
+    const r = await spawnBazr(["relic", RELIC_MINT, "--api", server.baseUrl]);
+
+    expectFinished(r);
+    expect(r.flat).toContain("Contributions sum to 46.9; the API reported 47");
+  });
+
+  it("--json puts the validated response on stdout and nothing else", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+
+    const r = await spawnBazr(["relic", RELIC_MINT, "--api", server.baseUrl, "--json"]);
+
+    expectFinished(r);
+    expect(r.code).toBe(0);
+    const parsed = JSON.parse(r.stdout) as { mint: string; axes: unknown[] };
+    expect(parsed.mint).toBe(RELIC_MINT);
+    expect(parsed.axes).toHaveLength(5);
+  });
+});
