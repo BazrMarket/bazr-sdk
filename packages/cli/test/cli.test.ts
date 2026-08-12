@@ -326,3 +326,60 @@ describe("bazr tags", () => {
     expect(r.flat).toContain("A low-confidence alert is still shown");
   });
 });
+
+describe("failures reach the user as sentences", () => {
+  it("a refused connection prints one readable line and exits 1, with no stack trace", async () => {
+    const port = await findClosedPort();
+    const r = await run(["relic", RELIC_MINT, "--api", `http://127.0.0.1:${port}`, "--retries", "1"]);
+
+    expect(r.code).toBe(1);
+    expect(r.err).toContain("X  Cannot reach");
+    expect(r.err).toContain("ECONNREFUSED");
+    expect(r.err).toContain("Is the BAZR service running and reachable?");
+    expect(r.err).toContain("BAZR_API");
+    expect(r.err).not.toContain("at process.");
+    expect(r.err).not.toContain("node:internal");
+  });
+
+  it("a 404 explains itself without a stack trace", async () => {
+    server = await startMockServer(() => ({
+      status: 404,
+      body: { error: { code: "relic_not_found", message: "no record for that mint" } },
+    }));
+    const r = await run(["relic", RELIC_MINT, "--api", server.baseUrl]);
+
+    expect(r.code).toBe(1);
+    expect(r.err).toContain("HTTP 404");
+    expect(r.err).toContain("relic_not_found");
+    expect(r.err).toContain("no record for that address yet");
+  });
+
+  it("a 429 explains the rate limit and points at --refresh", async () => {
+    server = await startMockServer(() => ({
+      status: 429,
+      headers: { "retry-after": "45" },
+      body: { error: { code: "rate_limited", message: "30 req/min exceeded" } },
+    }));
+    const r = await run(["relic", RELIC_MINT, "--api", server.baseUrl, "--retries", "1"]);
+
+    expect(r.code).toBe(1);
+    expect(r.err).toContain("Rate limited");
+    expect(r.err).toContain("45s");
+    expect(r.err).toContain("--refresh");
+  });
+
+  it("a contract violation is reported as such, not silently rendered", async () => {
+    server = await startMockServer(() => ({ body: relicPayload({ verdict: "revival" }) }));
+    const r = await run(["relic", RELIC_MINT, "--api", server.baseUrl]);
+
+    expect(r.code).toBe(1);
+    expect(r.err).toContain("did not match the expected contract");
+    expect(r.err).toContain("verdict");
+  });
+
+  it("a bad --api value is rejected before any request is made", async () => {
+    const r = await run(["relic", RELIC_MINT, "--api", "localhost:8030"]);
+    expect(r.code).toBe(1);
+    expect(r.err).toContain("misconfigured");
+  });
+});
