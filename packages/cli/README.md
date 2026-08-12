@@ -190,3 +190,36 @@ all against the live service. Testing the shipped binary against a stale
 `@bazr/sdk/dist` would reintroduce the same blind spot, which is why the build
 covers both.
 
+## Gates
+
+A glyph scan guards what this CLI is allowed to render. It ships with the
+repository and covers both packages, so anyone can run it at any time.
+
+```bash
+# from packages/cli -- glyph scan over sdk-ts and cli
+npm run gate:emoji:selftest   # control group. Run this first.
+npm run gate:emoji
+```
+
+Attach the real output, not a tick:
+
+```
+selftest ok=8 fail=0 verdict=PASS
+
+scanned=50 excluded=1 unreadable=0
+  EXCLUDED (declared) .../packages/cli/scripts/gate-emoji.mjs
+hits=0
+verdict=PASS
+```
+
+`scanned=` is counted from the same file list the scan reads, so it cannot drift
+from what was actually inspected. `scanned=0` is `SELF-FAIL`, not `PASS`: not
+looking and finding nothing produce identical output otherwise.
+
+Excluded files are named on every run rather than dropped quietly. They are the
+detectors themselves and the test fixtures, which necessarily contain the words
+and glyphs being searched for. `gate:emoji:selftest` is the control group: it
+checks that the detector fires on seeded violations *and* stays quiet on clean
+source, because a check that always fails passes an audit just as easily as one
+that always succeeds.
+
