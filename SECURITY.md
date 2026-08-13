@@ -197,3 +197,17 @@ chance, are treated as higher severity than the same bug occurring naturally.
 
 ---
 
+## Handling of keys and secrets
+
+This repository contains no private keys, no API keys and no RPC credentials, and
+it must stay that way.
+
+- **Neither package signs a transaction or holds a key.** Both are read-only HTTP
+  clients. Nothing here can move funds.
+- The SDK never reads credentials from the environment on its own. Anything sent
+  with a request is passed in explicitly by the caller.
+- Provider API keys belong on a server, behind a proxy route. They must never
+  reach a browser bundle.
+- If you find a committed secret in this repository, report it through the
+  advisory link rather than opening an issue, so it can be rotated before it is
+  advertised.
