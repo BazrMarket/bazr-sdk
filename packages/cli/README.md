@@ -223,3 +223,6 @@ checks that the detector fires on seeded violations *and* stays quiet on clean
 source, because a check that always fails passes an audit just as easily as one
 that always succeeds.
 
+## License
+
+MIT
