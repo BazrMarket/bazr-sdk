@@ -213,3 +213,24 @@ describe("what the relic tag prints, from the shipped binary", () => {
     expect(parsed.axes).toHaveLength(5);
   });
 });
+
+describe("bazr stalls, from the shipped binary", () => {
+  it("prints wins and losses side by side with no win rate anywhere", async () => {
+    server = await startMockServer(() => ({ body: stallListPayload() }));
+
+    const r = await spawnBazr(["stalls", "--api", server.baseUrl]);
+
+    expectFinished(r);
+    expect(r.code).toBe(0);
+
+    const header = r.stdout.split("\n").find((line) => line.includes("WINS"));
+    expect(header).toBeDefined();
+    expect(header).toContain("LOSSES");
+    // Same column treatment: neither count is given more room than the other.
+    expect((header as string).indexOf("WINS")).toBeLessThan((header as string).indexOf("LOSSES"));
+    expect(r.flat).toContain("totals: 10 wins, 16 losses, 4 pending");
+    expect(r.flat).toMatch(/win-rate column is derived/i);
+    expect(r.stdout).not.toMatch(/win[ _-]?rate\s*[:=]/i);
+    expect(r.stdout).not.toMatch(/\bWIN%|\bWINRATE\b/i);
+  });
+});
