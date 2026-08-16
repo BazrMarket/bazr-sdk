@@ -234,3 +234,114 @@ describe("bazr stalls, from the shipped binary", () => {
     expect(r.stdout).not.toMatch(/\bWIN%|\bWINRATE\b/i);
   });
 });
+
+describe("failures end the process with a status that says so", () => {
+  it("a refused connection exits 1 with a sentence and no stack trace", async () => {
+    const port = await findClosedPort();
+
+    const r = await spawnBazr(["relic", RELIC_MINT, "--api", `http://127.0.0.1:${port}`]);
+
+    expectFinished(r);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("X  Cannot reach");
+    expect(r.stderr).toContain("Is the BAZR service running and reachable?");
+    expect(r.stderr).not.toContain("at Object.");
+    expect(r.stdout.trim()).toBe("");
+  });
+
+  it("a request that never answers in time exits 1 rather than vanishing", async () => {
+    // Every attempt times out. Before the fix this was the silent-success
+    // path: no output, and a status no script would read as a failure.
+    server = await startMockServer(() => ({ body: relicPayload(), delayMs: 3_000 }));
+
+    const r = await spawnBazr([
+      "relic",
+      RELIC_MINT,
+      "--api",
+      server.baseUrl,
+      "--timeout",
+      "200",
+      "--retries",
+      "2",
+    ]);
+
+    expectFinished(r);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("X  No response from");
+    expect(r.stdout.trim()).toBe("");
+  });
+
+  it("an exhausted rate limit exits 1 and points at --refresh", async () => {
+    server = await startMockServer(() => ({
+      status: 429,
+      body: { error: { code: "rate_limited", message: "too many requests" } },
+    }));
+
+    const r = await spawnBazr([
+      "relic",
+      RELIC_MINT,
+      "--api",
+      server.baseUrl,
+      "--retries",
+      "1",
+    ]);
+
+    expectFinished(r);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("Rate limited by the BAZR API (429)");
+    expect(r.stderr).toContain("--refresh");
+  });
+
+  it("a payload that breaks the contract exits 1 and says which field", async () => {
+    server = await startMockServer(() => ({
+      body: relicPayload({ verdict: "moonshot" }),
+    }));
+
+    const r = await spawnBazr(["relic", RELIC_MINT, "--api", server.baseUrl]);
+
+    expectFinished(r);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("did not match the expected contract");
+    expect(r.stderr).toContain("verdict");
+  });
+
+  it("health against a service reporting anything but ok exits 1", async () => {
+    server = await startMockServer(() => ({
+      body: { status: "degraded", version: "0.1.0", uptime_s: 12 },
+    }));
+
+    const r = await spawnBazr(["health", "--api", server.baseUrl]);
+
+    expectFinished(r);
+    expect(r.code).toBe(1);
+    expect(r.stdout).toContain("FAIL");
+  });
+
+  it("health against a healthy service exits 0", async () => {
+    server = await startMockServer(() => ({
+      body: { status: "ok", version: "0.1.0", uptime_s: 12 },
+    }));
+
+    const r = await spawnBazr(["health", "--api", server.baseUrl]);
+
+    expectFinished(r);
+    expect(r.code).toBe(0);
+    expect(r.stdout).toContain("PASS");
+  });
+
+  it("a wrong command line exits 2, distinct from a failed request", async () => {
+    const r = await spawnBazr(["snipe"]);
+
+    expectFinished(r);
+    expect(r.code).toBe(2);
+    expect(r.stderr).toContain('X  Unknown command "snipe"');
+  });
+
+  it("a missing argument exits 2", async () => {
+    const r = await spawnBazr(["relic"]);
+
+    expectFinished(r);
+    expect(r.code).toBe(2);
+    expect(r.stderr).toContain("Missing argument");
+  });
+});
