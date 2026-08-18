@@ -44,6 +44,13 @@ const STALL_SORTS: readonly StallSort[] = ["record", "recent", "listings"];
 /**
  * Per-attempt timeout, picked per endpoint rather than one blanket number.
  *
+ * Measured against the production service on 2026-08-18 with a cold cache:
+ *
+ *   GET /health                  0.4s
+ *   GET /stall                   0.4s
+ *   GET /relic/{mint}           28.8s   holder page walk, pool discovery, upstreams
+ *   GET /relic/{mint}/tags      47.7s
+ *
  * One 10s default meant `bazr relic` timed out on every cache miss, then spent
  * its remaining attempts timing out again -- the command could not succeed
  * against a mint nobody had scored yet. Scoring gets room to answer. The cheap
