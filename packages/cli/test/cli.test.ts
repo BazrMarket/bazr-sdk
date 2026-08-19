@@ -383,3 +383,113 @@ describe("failures reach the user as sentences", () => {
     expect(r.err).toContain("misconfigured");
   });
 });
+
+describe("output discipline", () => {
+  it("emits no emoji or glyph status markers anywhere", async () => {
+    server = await startMockServer((req) => {
+      if (req.path.endsWith("/tags")) return { body: { mint: RELIC_MINT, tags: relicPayload().tags } };
+      if (req.path.startsWith("/stall")) return { body: stallListPayload() };
+      if (req.path.startsWith("/crate")) return { body: { crates: [cratePayload()], next_cursor: null } };
+      if (req.path.startsWith("/haggle")) return { body: haggleQuotePayload() };
+      if (req.path.startsWith("/market")) return { body: { relics_scored: 3, data_cluster: "mainnet" } };
+      return { body: relicPayload() };
+    });
+    const api = server.baseUrl;
+
+    const runs = [
+      await run(["--help"]),
+      await run(["relic", RELIC_MINT, "--api", api]),
+      await run(["tags", RELIC_MINT, "--api", api]),
+      await run(["stalls", "--api", api]),
+      await run(["crate", "list", "--api", api]),
+      await run(["stats", "--api", api]),
+      await run(["haggle", "--in", "A", "--out", "B", "--amount", "1000", "--api", api]),
+      await run(["nope"]),
+    ];
+
+    let scanned = 0;
+    for (const r of runs) {
+      scanned += r.stdout.length + r.stderr.length;
+      expect(r.all).not.toMatch(EMOJI_RE);
+    }
+    expect(scanned).toBeGreaterThan(60);
+  });
+
+  it("uses none of the banned marketing words", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+    const runs = [
+      await run(["--help"]),
+      await run(["relic", RELIC_MINT, "--api", server.baseUrl]),
+    ];
+    for (const r of runs) expect(r.all).not.toMatch(BANNED_RE);
+  });
+
+  it("emits no colour when the stream is not a TTY", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+    const r = await run(["relic", RELIC_MINT, "--api", server.baseUrl], { isTTY: false });
+
+    expect(ansiCount(r.out)).toBe(0);
+  });
+
+  it("emits colour on a TTY and drops it again for --no-color", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+    const colored = await run(["relic", RELIC_MINT, "--api", server.baseUrl], { isTTY: true });
+    const plain = await run(["relic", RELIC_MINT, "--api", server.baseUrl, "--no-color"], {
+      isTTY: true,
+    });
+
+    expect(ansiCount(colored.out)).toBeGreaterThan(0);
+    expect(ansiCount(plain.out)).toBe(0);
+  });
+
+  it("honours NO_COLOR", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+    const r = await run(["relic", RELIC_MINT, "--api", server.baseUrl], {
+      isTTY: true,
+      env: { NO_COLOR: "1" },
+    });
+
+    expect(ansiCount(r.out)).toBe(0);
+  });
+
+  it("keeps every printed line inside the render width", async () => {
+    server = await startMockServer((req) => {
+      if (req.path.endsWith("/tags")) return { body: { mint: RELIC_MINT, tags: relicPayload().tags } };
+      if (req.path.startsWith("/stall")) return { body: stallListPayload() };
+      if (req.path.startsWith("/crate")) return { body: { crates: [cratePayload()], next_cursor: null } };
+      if (req.path.startsWith("/haggle")) return { body: haggleQuotePayload() };
+      return { body: relicPayload() };
+    });
+    const api = server.baseUrl;
+    const columns = 80;
+
+    const runs = [
+      await run(["relic", RELIC_MINT, "--api", api], { columns }),
+      await run(["stalls", "--api", api], { columns }),
+      await run(["tags", RELIC_MINT, "--api", api], { columns }),
+      await run(["crate", "list", "--api", api], { columns }),
+      await run(["haggle", "--in", "A", "--out", "B", "--amount", "1000", "--api", api], { columns }),
+    ];
+
+    let scanned = 0;
+    for (const r of runs) {
+      for (const line of r.stdout) {
+        scanned += 1;
+        expect(stripAnsi(line).length).toBeLessThanOrEqual(columns);
+      }
+    }
+    expect(scanned).toBeGreaterThan(50);
+  });
+
+  it("keeps every box line the same visible width", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+    const r = await run(["relic", RELIC_MINT, "--api", server.baseUrl], { columns: 80 });
+
+    const boxLines = r.stdout
+      .map(stripAnsi)
+      .filter((l) => l.startsWith("|") || l.startsWith("+-"));
+    expect(boxLines.length).toBeGreaterThan(5);
+    const widths = new Set(boxLines.map((l) => l.length));
+    expect([...widths]).toHaveLength(1);
+  });
+});
