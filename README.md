@@ -137,6 +137,12 @@ PASS  https://api.bazr.market
       status ok, version 0.1.0
 ```
 
+The service sleeps when idle, so the first command after a quiet spell can stall
+or fail once before it answers. Measured on 2026-08-19: a cold `relic` request
+failed on the first attempt, then returned 200 in 0.38s on the retry, and the
+`tags` endpoint took 27.4s from cold. Run it a second time rather than reading
+one failure as an outage.
+
 ---
 
 ## Quick start -- SDK
@@ -188,6 +194,10 @@ bazr crate show 3
 bazr haggle --in <mint> --out <mint> --amount 1000000 --slippage-bps 100
 bazr tags <mint> --json
 ```
+
+If the first of these hangs or fails, the service was asleep. Repeat the command
+before treating it as broken; the cold-start numbers are in the install section
+above.
 
 Wrapped SOL against the deployed service, verbatim. Scoring a mint the service
 has not cached walks holder pages and asks several upstreams first, so this run
