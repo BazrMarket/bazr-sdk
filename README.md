@@ -189,6 +189,81 @@ bazr haggle --in <mint> --out <mint> --amount 1000000 --slippage-bps 100
 bazr tags <mint> --json
 ```
 
+Wrapped SOL against the deployed service, verbatim. Scoring a mint the service
+has not cached walks holder pages and asks several upstreams first, so this run
+was given more than the 90 second default:
+
+```bash
+bazr relic So11111111111111111111111111111111111111112 \
+  --api https://api.bazr.market \
+  --no-color --timeout 120000
+```
+
+```
++-[o]-- RELIC TAG ----------------------------------------------------------+
+| SOL                                                                       |
+| Wrapped SOL                                                               |
+| So11111111111111111111111111111111111111112                               |
++---------------------------------------------------------------------------+
+| SCORE       71 / 100  [#######...]                                        |
+| VERDICT     dormant                                                       |
+| OBSERVED    3 of 5 axes observed  (55% of the weight)                     |
+| GRADUATED   2022-11-28                                                    |
+| SCORED      2026-08-19 00:20:57Z  cache miss, age 0s                      |
++---------------------------------------------------------------------------+
+
+AXIS BREAKDOWN
+AXIS              SCORE  WEIGHT     SHARE  CONTRIB  METER
+----------------  -----  ------  --------  -------  ------------
+Holder spread        --     20%  excluded  no data  [no data   ]
+Liquidity left       60     30%       55%     32.7  [######....]
+Creator overhang    100     15%       27%     27.3  [##########]
+Trading floor        --     25%  excluded  no data  [no data   ]
+Afterglow            60     10%       18%     10.9  [######....]
+      2 of 5 axes could not be observed. They are excluded from the weighting
+      and re-normalised out, not counted as zero.
+      Contributions sum to 70.9; the API reported 71.
+
+TAGS
+      none recorded
+
+SOURCES  helius (getAccountInfo), helius (getTokenSupply), helius (getAsset),
+         dexscreener (latest/dex/tokens), helius (getTokenAccounts)
+
+NOTE  Survival-signal summary, not a prediction of price or revival.
+```
+
+Read what that output is admitting. Two of the five axes could not be observed,
+so 45% of the weight is missing; the header says so, the rows say `no data`
+rather than `0`, and the footer prints the contribution sum next to the score the
+API reported so a mismatch would be visible instead of hidden. The score is a
+weighted mean over the three axes that were actually observed.
+
+`bazr stats` prints the counters the service actually holds. Missing values print
+as `--` rather than as zero. `relics scored` is a live counter and moves whenever
+a mint is scored, so the block below is a snapshot taken at
+`2026-08-19T00:59:37Z`, not a fixed figure:
+
+```
+MARKET
+      relics scored        8
+      stalls open          1
+      crates live          2
+      aftermarket volume   --
+      data cluster         mainnet
+      program cluster      devnet
+      anchor               0.31.1
+
+      Counters the service actually holds. Missing values print as --.
+```
+
+Note the two separate cluster fields. The scoring pipeline reads mainnet token
+data; the Anchor program is deployed to devnet. Collapsing those into one
+`cluster` field would let "reads mainnet" be presented as "deployed on mainnet",
+which is the exact false claim this project refuses to make.
+
+---
+
 ## The relic score: five axes and their weights
 
 The weights are fixed in [`docs/relic-spec.md`](https://github.com/BazrMarket/bazr/blob/main/docs/relic-spec.md)
