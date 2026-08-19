@@ -345,3 +345,37 @@ describe("failures end the process with a status that says so", () => {
     expect(r.stderr).toContain("Missing argument");
   });
 });
+
+describe("the process exits on its own", () => {
+  it("leaves nothing running after a successful command", async () => {
+    server = await startMockServer(() => ({ body: relicPayload() }));
+
+    const r = await spawnBazr(["relic", RELIC_MINT, "--api", server.baseUrl], {
+      timeoutMs: 10_000,
+    });
+
+    expectFinished(r);
+    expect(r.code).toBe(0);
+    // A stray referenced timer would push this into seconds.
+    expect(r.durationMs).toBeLessThan(5_000);
+  });
+
+  it("--help and --version terminate without touching the network", async () => {
+    for (const args of [["--help"], ["--version"]]) {
+      const r = await spawnBazr(args);
+      expectFinished(r);
+      expect(r.code).toBe(0);
+      expect(r.stdout.trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it("documents its exit statuses in --help", async () => {
+    const r = await spawnBazr(["--help"]);
+
+    expectFinished(r);
+    expect(r.stdout).toContain("EXIT STATUS");
+    for (const code of ["0", "1", "2", "70"]) {
+      expect(r.stdout).toMatch(new RegExp(`^\\s*${code}\\s`, "m"));
+    }
+  });
+});
