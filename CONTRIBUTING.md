@@ -229,9 +229,9 @@ a pass.
   prediction and not financial advice.
 - **Do not describe something as working when it does not.** If a command,
   package or deployment does not exist, say so plainly. The README says in its
-  own words that nothing here is on npm and that the Anchor program is devnet
-  only, because a README that oversells is found in one minute and costs more
-  than the missing feature would have.
+  own words that nothing here is on npm and that the Anchor program is not
+  deployed on any cluster, because a README that oversells is found in one minute
+  and costs more than the missing feature would have.
 - **Failures are displayed at the same size as successes.** That applies to stall
   records, to rug and bundle observations, and to this documentation.
 

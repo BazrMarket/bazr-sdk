@@ -10,7 +10,7 @@
 <a href="https://nodejs.org/en/download"><img src="https://img.shields.io/badge/node-%3E%3D18-7FA650?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node"></a>
 <a href="https://zod.dev"><img src="https://img.shields.io/badge/zod-4.4-E8452F?style=flat-square" alt="zod"></a>
 <a href="https://vitest.dev"><img src="https://img.shields.io/badge/tests-120%20passing-7FA650?style=flat-square&logo=vitest&logoColor=white" alt="Tests"></a>
-<a href="https://explorer.solana.com/address/FSLSR2xYiR5NPWg6g8DZ1KyVRVa7xW37gDStbaDfSXLb?cluster=devnet"><img src="https://img.shields.io/badge/solana-devnet%20only-D9B85C?style=flat-square&logo=solana&logoColor=white" alt="Solana devnet"></a>
+<a href="#on-chain-program"><img src="https://img.shields.io/badge/solana-no%20live%20deployment-D9B85C?style=flat-square&logo=solana&logoColor=white" alt="No live Solana deployment"></a>
 <a href="https://github.com/BazrMarket/bazr-sdk#status-nothing-here-is-published-to-npm-yet"><img src="https://img.shields.io/badge/registry-not%20published-6E7076?style=flat-square" alt="Registry status"></a>
 <a href="https://github.com/BazrMarket/bazr/blob/main/docs/relic-spec.md"><img src="https://img.shields.io/badge/relic%20spec-published-C8A87C?style=flat-square" alt="Relic specification"></a>
 </p>
@@ -27,8 +27,8 @@ account can be frozen. Both facts are readable straight off the chain on
 [solscan.io](https://solscan.io/token/7YhmLtcwtqdTkoGZWMJ7AkQzoFdUJK4FTEk6b1gpump) and
 [solana.fm](https://solana.fm/address/7YhmLtcwtqdTkoGZWMJ7AkQzoFdUJK4FTEk6b1gpump).
 
-The Anchor program linked in the badges above is a different address and is
-deployed to devnet only. The two are not interchangeable.
+The Anchor program described further down is a different address, and it is
+not deployed on any cluster right now. The two are not interchangeable.
 
 Two TypeScript packages for reading the BAZR relic API: a typed client library
 and a terminal client built on top of it.
@@ -99,7 +99,7 @@ graph TD
   SDK --> ZOD["schemas.ts<br/>zod runtime validation"]
   HTTP --> API["BAZR service<br/>relic, stall, crate, haggle"]
   API --> IDX["indexers and RPC<br/>read-only, off this repo"]
-  API --> CHAIN["bazr-market program<br/>Solana devnet"]
+  API --> CHAIN["bazr-market program<br/>not deployed"]
   ZOD -->|"contract violation"| ERR["BazrValidationError<br/>thrown, never silently dropped"]
   SCORE -->|"unknown axis"| DEN["removed from the denominator<br/>never folded in as zero"]
 
@@ -267,25 +267,32 @@ weighted mean over the three axes that were actually observed.
 `bazr stats` prints the counters the service actually holds. Missing values print
 as `--` rather than as zero. `relics scored` is a live counter and moves whenever
 a mint is scored, so the block below is a snapshot taken at
-`2026-08-19T00:59:37Z`, not a fixed figure:
+`2026-08-20T06:06:17Z`, not a fixed figure:
 
 ```
 MARKET
-      relics scored        8
+      relics scored        24
       stalls open          1
       crates live          2
       aftermarket volume   --
       data cluster         mainnet
-      program cluster      devnet
-      anchor               0.31.1
 
       Counters the service actually holds. Missing values print as --.
 ```
 
-Note the two separate cluster fields. The scoring pipeline reads mainnet token
-data; the Anchor program is deployed to devnet. Collapsing those into one
-`cluster` field would let "reads mainnet" be presented as "deployed on mainnet",
-which is the exact false claim this project refuses to make.
+There used to be two more lines here, `program cluster` and `anchor`. They are
+gone because the program was closed on 2026-08-20 and there is no deployment
+left to name -- the service omits `program_cluster` from the response entirely
+rather than sending `null`, and the CLI drops the line rather than printing
+`unknown`, because "not deployed" and "we did not get a value" are different
+facts and must not share a word. `anchor` goes with it: a version number on its
+own would imply a program is out there.
+
+The two cluster fields stay separate for the same reason. The scoring pipeline
+reads mainnet token data; where the program is deployed is a second, unrelated
+question. Collapsing them into one `cluster` field would let "reads mainnet" be
+presented as "deployed on mainnet", which is the exact false claim this project
+refuses to make.
 
 ---
 
@@ -380,15 +387,22 @@ used in its `source` field.
 
 ## On-chain program
 
-The `bazr-market` Anchor program is deployed to **Solana devnet only. It is not
-deployed to mainnet.**
+The `bazr-market` Anchor program is **not deployed on any cluster.** It ran on
+devnet from 2026-08-18 and was closed there on 2026-08-20, the same day it was
+deployed to mainnet-beta and closed again six minutes later. The closing
+signatures, slots and recovered rent are listed in the
+[main repository README](https://github.com/BazrMarket/bazr#the-on-chain-program).
 
 | Field | Value |
 | --- | --- |
 | Program ID | `FSLSR2xYiR5NPWg6g8DZ1KyVRVa7xW37gDStbaDfSXLb` |
-| Cluster | `devnet` |
-| Anchor | 0.31.1 |
-| Explorer | [explorer.solana.com/address/FSLSR2xYiR5NPWg6g8DZ1KyVRVa7xW37gDStbaDfSXLb?cluster=devnet](https://explorer.solana.com/address/FSLSR2xYiR5NPWg6g8DZ1KyVRVa7xW37gDStbaDfSXLb?cluster=devnet) |
+| devnet | closed 2026-08-20 |
+| mainnet-beta | closed 2026-08-20 |
+| What is left | a 36-byte stub on each chain; its `ProgramData` account is gone, so it cannot execute |
+| Anchor | 0.31.1, the version it was built with |
+
+The program source and the committed IDL are unchanged in the main repository
+and it can be redeployed from there. Nothing was lost except the deployment.
 
 Neither package in this repository submits a transaction or holds a key. Both are
 read-only HTTP clients. The program source lives in the main repository.
